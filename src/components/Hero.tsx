@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,10 +46,19 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           <Button 
             variant="outline" 
             size="lg"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/progress')}
             className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 px-8 py-4 text-lg font-semibold transition-all duration-300"
           >
-            📊 View Dashboard
+            📊 View Progress
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => navigate('/dashboard')}
+            className="border-2 border-purple-200 text-purple-700 hover:bg-purple-50 px-8 py-4 text-lg font-semibold transition-all duration-300"
+          >
+            📈 Session History
           </Button>
         </div>
       </div>
