@@ -1,7 +1,6 @@
-
 // Using Opik REST API since JavaScript SDK is not publicly available yet
 const OPIK_API_URL = 'https://api.opik.dev/v1/traces'; // Replace with your actual Opik API URL
-const OPIK_API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your actual API key (recommend using env variables)
+const OPIK_API_KEY = 'KlJBFBe13Q5Zc5BPC7Tdb2CX3'; // Your Opik API key
 
 export interface ConversationLog {
   sessionId: string;
