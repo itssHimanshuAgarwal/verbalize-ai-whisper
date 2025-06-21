@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,7 +34,7 @@ export const FeedbackReport = ({ sessionData, onStartOver, onNewSession }: Feedb
     const baseScore = 65 + Math.random() * 25;
     
     return {
-      over rade: Math.round(baseScore),
+      overallScore: Math.round(baseScore),
       confidence: Math.round(baseScore + (Math.random() - 0.5) * 20),
       persuasiveness: Math.round(baseScore + (Math.random() - 0.5) * 15),
       clarity: Math.round(baseScore + (Math.random() - 0.5) * 10),
