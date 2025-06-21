@@ -1,6 +1,7 @@
+
 // Using Opik REST API since JavaScript SDK is not publicly available yet
-const OPIK_API_URL = 'https://api.opik.dev/v1/traces'; // Replace with your actual Opik API URL
-const OPIK_API_KEY = 'KlJBFBe13Q5Zc5BPC7Tdb2CX3'; // Your Opik API key
+const OPIK_API_URL = 'https://api.opik.dev/v1/traces';
+const OPIK_API_KEY = 'KlJBFBe13Q5Zc5BPC7Tdb2CX3';
 
 export interface ConversationLog {
   sessionId: string;
@@ -18,37 +19,50 @@ export interface ConversationLog {
 
 export const logConversation = async (data: ConversationLog) => {
   try {
+    const payload = {
+      name: `negotiation-${data.negotiationType}`,
+      input: {
+        userMessage: data.userMessage,
+        persona: data.persona,
+        sessionId: data.sessionId,
+        negotiationType: data.negotiationType
+      },
+      output: {
+        aiResponse: data.aiResponse
+      },
+      metadata: {
+        negotiationType: data.negotiationType,
+        timestamp: data.timestamp.toISOString(),
+        metrics: data.metrics,
+        app: 'verbalize-ai'
+      },
+      tags: ['negotiation', 'practice', data.negotiationType]
+    };
+
+    console.log('Logging to Opik:', payload);
+
     const response = await fetch(OPIK_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`
+        'Authorization': `Bearer ${OPIK_API_KEY}`,
+        'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        name: `negotiation-${data.negotiationType}`,
-        input: {
-          userMessage: data.userMessage,
-          persona: data.persona,
-          sessionId: data.sessionId
-        },
-        output: {
-          aiResponse: data.aiResponse
-        },
-        metadata: {
-          negotiationType: data.negotiationType,
-          timestamp: data.timestamp.toISOString(),
-          metrics: data.metrics
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`Opik API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Opik API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
-    console.log('Conversation logged to Opik:', data.sessionId);
+    const result = await response.json();
+    console.log('✅ Conversation logged to Opik successfully:', data.sessionId, result);
+    return result;
   } catch (error) {
-    console.error('Failed to log conversation to Opik:', error);
+    console.warn('⚠️ Failed to log conversation to Opik:', error);
+    // Don't throw - we don't want logging failures to break the app
+    return null;
   }
 };
 
@@ -59,29 +73,46 @@ export const logSessionMetrics = async (sessionId: string, metrics: {
   overallScore: number;
 }) => {
   try {
+    const payload = {
+      name: `session-metrics-${sessionId}`,
+      input: { 
+        sessionId,
+        type: 'session_summary'
+      },
+      output: { 
+        metrics,
+        summary: `Session completed with overall score: ${metrics.overallScore}%`
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        type: 'session_summary',
+        app: 'verbalize-ai'
+      },
+      tags: ['metrics', 'session-summary']
+    };
+
+    console.log('Logging session metrics to Opik:', payload);
+
     const response = await fetch(OPIK_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`
+        'Authorization': `Bearer ${OPIK_API_KEY}`,
+        'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        name: `session-metrics-${sessionId}`,
-        input: { sessionId },
-        output: { metrics },
-        metadata: {
-          timestamp: new Date().toISOString(),
-          type: 'session_summary'
-        }
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`Opik API error: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Opik API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
-    
-    console.log('Session metrics logged to Opik:', sessionId);
+
+    const result = await response.json();
+    console.log('✅ Session metrics logged to Opik successfully:', sessionId, result);
+    return result;
   } catch (error) {
-    console.error('Failed to log session metrics to Opik:', error);
+    console.warn('⚠️ Failed to log session metrics to Opik:', error);
+    return null;
   }
 };

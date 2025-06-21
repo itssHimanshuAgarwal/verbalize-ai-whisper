@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +14,12 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="text-center mb-16">
-        <div className="flex justify-center mb-6">
+        <div className="flex justify-center gap-2 mb-6">
           <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-4 py-2 text-sm font-medium">
             🚀 AI-Powered Negotiation Coaching
+          </Badge>
+          <Badge variant="outline" className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-purple-200 px-4 py-2 text-sm font-medium">
+            ⚡ Powered by Opik
           </Badge>
         </div>
         
@@ -70,7 +74,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
 
         <Card className="p-8 text-center hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm border-0 shadow-md">
           <div className="text-4xl mb-4">🎤</div>
-          <h3 className="text-xl font-semibent mb-3 text-gray-800">Customer Service</h3>
+          <h3 className="text-xl font-semibold mb-3 text-gray-800">Customer Service</h3>
           <p className="text-gray-600 leading-relaxed">
             Handle difficult customer situations and disputes with proven techniques and real-time coaching.
           </p>
