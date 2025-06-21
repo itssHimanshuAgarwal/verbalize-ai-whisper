@@ -137,9 +137,13 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   };
 
   const handleEndSession = () => {
+    console.log('Ending session with messages:', messages);
+    
     const transcript = messages
       .map(msg => `${msg.role === 'ai' ? persona.name : 'You'}: ${msg.content}`)
       .join('\n\n');
+    
+    console.log('Generated transcript:', transcript);
     
     // Save session result to localStorage
     const savedResult = saveSessionResult({
@@ -149,7 +153,9 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     });
     
     if (savedResult) {
-      console.log('Session completed and saved:', savedResult);
+      console.log('Session completed and saved successfully:', savedResult);
+    } else {
+      console.error('Failed to save session result');
     }
     
     onComplete(transcript);

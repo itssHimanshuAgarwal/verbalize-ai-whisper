@@ -1,3 +1,4 @@
+
 interface SessionResult {
   sessionId: string;
   date: string;
@@ -15,6 +16,8 @@ export const saveSessionResult = (sessionData: {
   transcript: string;
 }) => {
   try {
+    console.log('Attempting to save session:', sessionData);
+    
     // Generate mock scores based on session length and content quality
     const messageCount = sessionData.transcript.split('\n\n').length;
     const transcriptLength = sessionData.transcript.length;
@@ -41,19 +44,24 @@ export const saveSessionResult = (sessionData: {
 
     // Get existing sessions
     const existingSessions = localStorage.getItem('practiceSessionResults');
+    console.log('Existing sessions from storage:', existingSessions);
+    
     const sessions: SessionResult[] = existingSessions ? JSON.parse(existingSessions) : [];
+    console.log('Parsed existing sessions:', sessions);
     
     // Add new session
     sessions.push(sessionResult);
+    console.log('Sessions after adding new one:', sessions);
     
-    // Keep only last 10 sessions
-    const recentSessions = sessions.slice(-10);
+    // Save all sessions (don't limit to 10 for now so user can see all their data)
+    localStorage.setItem('practiceSessionResults', JSON.stringify(sessions));
     
-    // Save back to localStorage
-    localStorage.setItem('practiceSessionResults', JSON.stringify(recentSessions));
+    // Verify it was saved
+    const savedData = localStorage.getItem('practiceSessionResults');
+    console.log('Verified saved data:', savedData);
     
-    console.log('Session result saved:', sessionResult);
-    console.log('Total sessions:', recentSessions.length);
+    console.log('Session result saved successfully:', sessionResult);
+    console.log('Total sessions now:', sessions.length);
     
     return sessionResult;
   } catch (error) {
@@ -65,6 +73,7 @@ export const saveSessionResult = (sessionData: {
 export const getSessionResults = (): SessionResult[] => {
   try {
     const storedSessions = localStorage.getItem('practiceSessionResults');
+    console.log('Loading session results:', storedSessions);
     return storedSessions ? JSON.parse(storedSessions) : [];
   } catch (error) {
     console.error('Error loading session results:', error);

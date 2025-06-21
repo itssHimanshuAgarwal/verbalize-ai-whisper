@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, BarChart3, TrendingUp, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ProgressCharts } from '@/components/ProgressCharts';
+import { getSessionResults } from '@/components/SessionResultSaver';
 
 interface SessionData {
   sessionId: string;
@@ -26,19 +26,10 @@ const ProgressDashboard = () => {
     // Load actual session data from localStorage
     const loadSessionData = () => {
       try {
-        // Check for stored practice sessions
-        const storedSessions = localStorage.getItem('practiceSessionResults');
-        console.log('Stored sessions data:', storedSessions);
-        
-        if (storedSessions) {
-          const parsedSessions: SessionData[] = JSON.parse(storedSessions);
-          console.log('Parsed sessions:', parsedSessions);
-          setSessions(parsedSessions);
-        } else {
-          // No stored data, use empty array
-          console.log('No stored session data found');
-          setSessions([]);
-        }
+        console.log('Loading session data...');
+        const sessionResults = getSessionResults();
+        console.log('Retrieved session results:', sessionResults);
+        setSessions(sessionResults);
       } catch (error) {
         console.error('Error loading session data:', error);
         setSessions([]);
@@ -47,7 +38,7 @@ const ProgressDashboard = () => {
       }
     };
 
-    // Simulate loading delay for better UX
+    // Small delay for better UX
     const timer = setTimeout(loadSessionData, 500);
     return () => clearTimeout(timer);
   }, []);
