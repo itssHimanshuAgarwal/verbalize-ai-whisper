@@ -23,61 +23,32 @@ const ProgressDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading and fetch data
-    const timer = setTimeout(() => {
-      // Mock data - in production this would fetch from Opik or local storage
-      const mockSessions: SessionData[] = [
-        {
-          sessionId: '1',
-          date: '2024-06-17',
-          negotiationType: 'salary',
-          confidence: 72,
-          clarity: 68,
-          persuasiveness: 75,
-          overallScore: 72
-        },
-        {
-          sessionId: '2',
-          date: '2024-06-18',
-          negotiationType: 'business',
-          confidence: 78,
-          clarity: 82,
-          persuasiveness: 71,
-          overallScore: 77
-        },
-        {
-          sessionId: '3',
-          date: '2024-06-19',
-          negotiationType: 'customer_service',
-          confidence: 85,
-          clarity: 79,
-          persuasiveness: 83,
-          overallScore: 82
-        },
-        {
-          sessionId: '4',
-          date: '2024-06-20',
-          negotiationType: 'salary',
-          confidence: 88,
-          clarity: 85,
-          persuasiveness: 86,
-          overallScore: 86
-        },
-        {
-          sessionId: '5',
-          date: '2024-06-21',
-          negotiationType: 'business',
-          confidence: 91,
-          clarity: 89,
-          persuasiveness: 88,
-          overallScore: 89
+    // Load actual session data from localStorage
+    const loadSessionData = () => {
+      try {
+        // Check for stored practice sessions
+        const storedSessions = localStorage.getItem('practiceSessionResults');
+        console.log('Stored sessions data:', storedSessions);
+        
+        if (storedSessions) {
+          const parsedSessions: SessionData[] = JSON.parse(storedSessions);
+          console.log('Parsed sessions:', parsedSessions);
+          setSessions(parsedSessions);
+        } else {
+          // No stored data, use empty array
+          console.log('No stored session data found');
+          setSessions([]);
         }
-      ];
+      } catch (error) {
+        console.error('Error loading session data:', error);
+        setSessions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-      setSessions(mockSessions);
-      setIsLoading(false);
-    }, 1000);
-
+    // Simulate loading delay for better UX
+    const timer = setTimeout(loadSessionData, 500);
     return () => clearTimeout(timer);
   }, []);
 

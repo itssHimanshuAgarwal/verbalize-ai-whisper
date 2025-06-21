@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SessionData } from '@/pages/Index';
 import { logConversation } from '@/services/opikService';
+import { saveSessionResult } from '@/components/SessionResultSaver';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -139,6 +140,18 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     const transcript = messages
       .map(msg => `${msg.role === 'ai' ? persona.name : 'You'}: ${msg.content}`)
       .join('\n\n');
+    
+    // Save session result to localStorage
+    const savedResult = saveSessionResult({
+      sessionId,
+      negotiationType: sessionData.type,
+      transcript
+    });
+    
+    if (savedResult) {
+      console.log('Session completed and saved:', savedResult);
+    }
+    
     onComplete(transcript);
   };
 
