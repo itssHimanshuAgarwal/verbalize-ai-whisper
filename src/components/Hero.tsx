@@ -18,7 +18,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
         </div>
         
         <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent leading-tight">
-          Confidant AI
+          Verbalize AI
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-600 mb-4 max-w-3xl mx-auto">
