@@ -1,10 +1,16 @@
 
 import { Opik } from '@opik/javascript-sdk';
 
-// Initialize Opik client
-const opik = new Opik({
-  // API key will be handled via environment or user input
-});
+// Initialize Opik client with error handling
+let opik: Opik | null = null;
+
+try {
+  opik = new Opik({
+    // API key will be handled via environment or user input
+  });
+} catch (error) {
+  console.warn('Opik initialization failed:', error);
+}
 
 export interface ConversationLog {
   sessionId: string;
@@ -21,6 +27,11 @@ export interface ConversationLog {
 }
 
 export const logConversation = async (data: ConversationLog) => {
+  if (!opik) {
+    console.warn('Opik not initialized, skipping conversation log');
+    return;
+  }
+
   try {
     await opik.trace({
       name: `negotiation-${data.negotiationType}`,
@@ -51,6 +62,11 @@ export const logSessionMetrics = async (sessionId: string, metrics: {
   persuasiveness: number;
   overallScore: number;
 }) => {
+  if (!opik) {
+    console.warn('Opik not initialized, skipping session metrics log');
+    return;
+  }
+
   try {
     await opik.trace({
       name: `session-metrics-${sessionId}`,
