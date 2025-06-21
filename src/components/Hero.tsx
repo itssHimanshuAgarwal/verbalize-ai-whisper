@@ -1,13 +1,15 @@
-
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
   onStartPractice: () => void;
 }
 
 export const Hero = ({ onStartPractice }: HeroProps) => {
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="text-center mb-16">
@@ -41,9 +43,10 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           <Button 
             variant="outline" 
             size="lg"
+            onClick={() => navigate('/dashboard')}
             className="border-2 border-blue-200 text-blue-700 hover:bg-blue-50 px-8 py-4 text-lg font-semibold transition-all duration-300"
           >
-            📊 View Demo
+            📊 View Dashboard
           </Button>
         </div>
       </div>
@@ -67,7 +70,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
 
         <Card className="p-8 text-center hover:shadow-lg transition-shadow duration-300 bg-white/80 backdrop-blur-sm border-0 shadow-md">
           <div className="text-4xl mb-4">🎤</div>
-          <h3 className="text-xl font-semibold mb-3 text-gray-800">Customer Service</h3>
+          <h3 className="text-xl font-semibent mb-3 text-gray-800">Customer Service</h3>
           <p className="text-gray-600 leading-relaxed">
             Handle difficult customer situations and disputes with proven techniques and real-time coaching.
           </p>

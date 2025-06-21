@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SessionData } from '@/pages/Index';
+import { logConversation } from '@/services/opikService';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -26,6 +26,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   const persona = personas[sessionData.type];
 
@@ -52,7 +53,6 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   };
 
   const generateAIResponse = (userMessage: string) => {
-    // Simulate AI thinking time
     const responses = {
       salary: [
         "I see you're asking for quite a bit above our initial offer. What specific value do you bring that justifies this increase?",
@@ -96,19 +96,41 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     return possibleResponses[Math.floor(Math.random() * possibleResponses.length)];
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
 
     const userMsg = { role: 'user' as const, content: currentMessage, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
+    
+    // Log conversation to Opik
+    await logConversation({
+      sessionId,
+      userMessage: currentMessage,
+      aiResponse: '', // Will be updated when AI responds
+      timestamp: new Date(),
+      negotiationType: sessionData.type,
+      persona: persona.name
+    });
+
     setCurrentMessage('');
     setIsTyping(true);
 
     // Simulate AI response delay
-    setTimeout(() => {
+    setTimeout(async () => {
       const aiResponse = generateAIResponse(currentMessage);
       const aiMsg = { role: 'ai' as const, content: aiResponse, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
+      
+      // Log AI response to Opik
+      await logConversation({
+        sessionId,
+        userMessage: userMsg.content,
+        aiResponse,
+        timestamp: new Date(),
+        negotiationType: sessionData.type,
+        persona: persona.name
+      });
+      
       setIsTyping(false);
     }, 1500 + Math.random() * 1000);
   };
