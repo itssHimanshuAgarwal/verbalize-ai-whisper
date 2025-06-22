@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -29,13 +28,17 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const [isTyping, setIsTyping] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [opikStatus, setOpikStatus] = useState<string>('untested');
 
   const persona = personas[sessionData.type];
 
   useEffect(() => {
     if (!sessionStarted) {
       // Test Opik connection when session starts
-      testOpikConnection();
+      testOpikConnection().then(result => {
+        console.log('Opik test result:', result);
+        setOpikStatus(result.success ? 'connected' : 'failed');
+      });
       
       // Start with AI greeting
       const greeting = generateAIGreeting();
@@ -43,6 +46,14 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       setSessionStarted(true);
     }
   }, [sessionStarted]);
+
+  const testOpikNow = async () => {
+    console.log('🧪 Manual Opik test triggered');
+    setOpikStatus('testing');
+    const result = await testOpikConnection();
+    console.log('Manual test result:', result);
+    setOpikStatus(result.success ? 'connected' : 'failed');
+  };
 
   const generateAIGreeting = () => {
     const greetings = {
@@ -96,14 +107,15 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         "That makes sense. What if we started with a smaller project to build trust, then discuss larger terms for future work?"
       ]
     };
-
-    const possibleResponses = responses[sessionData.type];
-    return possibleResponses[Math.floor(Math.random() * possibleResponses.length)];
+    
+    return responses[sessionData.type][Math.floor(Math.random() * responses[sessionData.type].length)];
   };
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
 
+    console.log('💬 Sending message:', currentMessage);
+    
     const userMsg = { role: 'user' as const, content: currentMessage, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     
@@ -116,8 +128,11 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       const aiMsg = { role: 'ai' as const, content: aiResponse, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
       
-      // Log conversation to Opik
-      await logConversation({
+      console.log('🤖 AI responded:', aiResponse);
+      
+      // Log conversation to Opik with detailed logging
+      console.log('📝 About to log conversation to Opik...');
+      const logResult = await logConversation({
         sessionId,
         userMessage: userMsg.content,
         aiResponse,
@@ -126,18 +141,20 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         persona: persona.name
       });
       
+      console.log('📝 Opik logging result:', logResult);
+      
       setIsTyping(false);
     }, 1500 + Math.random() * 1000);
   };
 
   const handleEndSession = async () => {
-    console.log('Ending session with messages:', messages);
+    console.log('🔚 Ending session with messages:', messages);
     
     const transcript = messages
       .map(msg => `${msg.role === 'ai' ? persona.name : 'You'}: ${msg.content}`)
       .join('\n\n');
     
-    console.log('Generated transcript:', transcript);
+    console.log('📋 Generated transcript:', transcript);
     
     // Save session result to localStorage
     const savedResult = saveSessionResult({
@@ -147,17 +164,20 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     });
     
     if (savedResult) {
-      console.log('Session completed and saved successfully:', savedResult);
+      console.log('💾 Session completed and saved successfully:', savedResult);
       
       // Log session metrics to Opik
-      await logSessionMetrics(sessionId, {
+      console.log('📊 Logging session metrics to Opik...');
+      const metricsResult = await logSessionMetrics(sessionId, {
         confidence: savedResult.confidence,
         clarity: savedResult.clarity,
         persuasiveness: savedResult.persuasiveness,
         overallScore: savedResult.overallScore
       });
+      
+      console.log('📊 Metrics logging result:', metricsResult);
     } else {
-      console.error('Failed to save session result');
+      console.error('❌ Failed to save session result');
     }
     
     onComplete(transcript);
@@ -175,6 +195,19 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
             <Badge variant="outline">
               {messages.length} messages
             </Badge>
+            <Badge 
+              variant={opikStatus === 'connected' ? 'default' : opikStatus === 'failed' ? 'destructive' : 'secondary'}
+              className={
+                opikStatus === 'connected' ? 'bg-green-100 text-green-800' :
+                opikStatus === 'failed' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800'
+              }
+            >
+              Opik: {opikStatus}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={testOpikNow}>
+              Test Opik
+            </Button>
           </div>
         </div>
         
