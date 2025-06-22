@@ -106,10 +106,13 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       };
       
       recognitionInstance.onend = () => {
+        console.log('🎤 Speech recognition ended');
         setIsRecording(false);
       };
       
       setRecognition(recognitionInstance);
+    } else {
+      console.warn('Speech recognition not supported in this browser');
     }
   }, [toast]);
 
