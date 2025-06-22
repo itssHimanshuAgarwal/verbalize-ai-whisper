@@ -1,8 +1,7 @@
-
 // Opik REST API implementation for hackathon
 const OPIK_API_KEY = 'KlJBFBe13Q5Zc5BPC7Tdb2CX3';
-// Try the alternative endpoint
-const OPIK_API_URL = 'https://api.comet.com/opik/api/v1/traces';
+// Updated to the correct Opik API endpoint
+const OPIK_API_URL = 'https://www.comet.com/opik/api/v1/traces';
 
 export interface ConversationLog {
   sessionId: string;
