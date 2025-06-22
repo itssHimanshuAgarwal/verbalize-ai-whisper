@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { SessionData } from '@/pages/Index';
-import { logConversation } from '@/services/opikService';
+import { logConversation, logSessionMetrics, testOpikConnection } from '@/services/opikService';
 import { saveSessionResult } from '@/components/SessionResultSaver';
 
 interface PracticeSessionProps {
@@ -33,6 +34,9 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
 
   useEffect(() => {
     if (!sessionStarted) {
+      // Test Opik connection when session starts
+      testOpikConnection();
+      
       // Start with AI greeting
       const greeting = generateAIGreeting();
       setMessages([{ role: 'ai', content: greeting, timestamp: new Date() }]);
@@ -103,16 +107,6 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     const userMsg = { role: 'user' as const, content: currentMessage, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     
-    // Log conversation to Opik
-    await logConversation({
-      sessionId,
-      userMessage: currentMessage,
-      aiResponse: '', // Will be updated when AI responds
-      timestamp: new Date(),
-      negotiationType: sessionData.type,
-      persona: persona.name
-    });
-
     setCurrentMessage('');
     setIsTyping(true);
 
@@ -122,7 +116,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       const aiMsg = { role: 'ai' as const, content: aiResponse, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
       
-      // Log AI response to Opik
+      // Log conversation to Opik
       await logConversation({
         sessionId,
         userMessage: userMsg.content,
@@ -136,7 +130,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     }, 1500 + Math.random() * 1000);
   };
 
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     console.log('Ending session with messages:', messages);
     
     const transcript = messages
@@ -154,6 +148,14 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     
     if (savedResult) {
       console.log('Session completed and saved successfully:', savedResult);
+      
+      // Log session metrics to Opik
+      await logSessionMetrics(sessionId, {
+        confidence: savedResult.confidence,
+        clarity: savedResult.clarity,
+        persuasiveness: savedResult.persuasiveness,
+        overallScore: savedResult.overallScore
+      });
     } else {
       console.error('Failed to save session result');
     }
