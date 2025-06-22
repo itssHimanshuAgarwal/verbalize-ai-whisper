@@ -17,8 +17,12 @@ export const Team = () => {
       <div className="flex justify-center">
         <Card className="max-w-sm bg-white shadow-lg border-0 hover:shadow-2xl transition-all duration-300 hover:scale-105">
           <CardContent className="p-8 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-white text-2xl font-bold">HR</span>
+            <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-6 border-4 border-gradient-to-br from-blue-500 to-purple-600">
+              <img 
+                src="/lovable-uploads/8a843894-388c-4b2e-a362-527b80860fb5.png" 
+                alt="Himanshu Ragarwal"
+                className="w-full h-full object-cover"
+              />
             </div>
             <h3 className="text-xl font-bold mb-2 text-gray-900">Himanshu Ragarwal</h3>
             <p className="text-blue-600 font-medium mb-3">Founder & CEO</p>
