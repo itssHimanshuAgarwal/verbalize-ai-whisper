@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageSquare, TrendingUp, FileText, Play, Sparkles, Zap, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface HeroProps {
   onStartPractice: () => void;
@@ -10,6 +11,7 @@ interface HeroProps {
 
 export const Hero = ({ onStartPractice }: HeroProps) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <div className="relative overflow-hidden">
@@ -50,7 +52,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
             >
               <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-              Start Practicing Now
+              {user ? 'Start Practicing Now' : 'Start Free Practice'}
             </Button>
             
             <div className="flex gap-2">
@@ -88,6 +90,10 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
             <div className="flex items-center gap-1">
               <Sparkles className="h-4 w-4 text-purple-500" />
               Professional results
+            </div>
+            <div className="flex items-center gap-1 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-700 font-medium">Opik passes successfully</span>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Hero } from '@/components/Hero';
 import { ScenarioSelector } from '@/components/ScenarioSelector';
@@ -83,6 +84,10 @@ const Index = () => {
     setCurrentStep('welcome');
   };
 
+  const handleSignInClick = () => {
+    setShowAuthModal(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -100,13 +105,17 @@ const Index = () => {
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
             {user && (
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-4 right-4 z-50">
                 <UserMenu />
               </div>
             )}
             {!user && (
-              <div className="absolute top-4 right-4">
-                <Button onClick={() => setShowAuthModal(true)} variant="outline">
+              <div className="absolute top-4 right-4 z-50">
+                <Button 
+                  onClick={handleSignInClick} 
+                  variant="outline"
+                  className="bg-white/90 backdrop-blur-sm border-gray-200 hover:bg-white hover:border-blue-300 transition-all duration-300"
+                >
                   Sign In
                 </Button>
               </div>
