@@ -1,7 +1,8 @@
 
-// Simplified Opik REST API implementation for hackathon
+// Opik REST API implementation for hackathon
 const OPIK_API_KEY = 'KlJBFBe13Q5Zc5BPC7Tdb2CX3';
-const OPIK_API_URL = 'https://www.comet.com/opik/api/v1/traces';
+// Try the alternative endpoint
+const OPIK_API_URL = 'https://api.comet.com/opik/api/v1/traces';
 
 export interface ConversationLog {
   sessionId: string;
@@ -18,7 +19,7 @@ export interface ConversationLog {
 }
 
 export const logConversation = async (data: ConversationLog) => {
-  console.log('🚀 Logging conversation to Opik with simplified REST API...');
+  console.log('🚀 Logging conversation to Opik...');
   
   const payload = {
     name: "conversation-trace",
@@ -37,7 +38,12 @@ export const logConversation = async (data: ConversationLog) => {
     }
   };
 
-  console.log('📤 Sending payload:', JSON.stringify(payload, null, 2));
+  console.log('📤 Sending to:', OPIK_API_URL);
+  console.log('📤 Payload:', JSON.stringify(payload, null, 2));
+  console.log('📤 Headers:', {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${OPIK_API_KEY}`
+  });
 
   try {
     const response = await fetch(OPIK_API_URL, {
@@ -49,19 +55,29 @@ export const logConversation = async (data: ConversationLog) => {
       body: JSON.stringify(payload)
     });
 
-    console.log('📥 Opik response:', response.status, response.statusText);
+    console.log('📥 Response status:', response.status);
+    console.log('📥 Response headers:', response.headers);
+    
+    // Log the raw response
+    const responseText = await response.text();
+    console.log('📥 Raw response:', responseText);
 
     if (response.ok) {
-      const result = await response.json();
-      console.log('✅ Successfully logged to Opik:', result);
-      return { success: true, result };
+      try {
+        const result = JSON.parse(responseText);
+        console.log('✅ Successfully logged to Opik:', result);
+        return { success: true, result };
+      } catch (parseError) {
+        console.log('✅ Success but no JSON response:', responseText);
+        return { success: true, result: responseText };
+      }
     } else {
-      const errorText = await response.text();
-      console.error('❌ Opik API error:', errorText);
-      return { success: false, error: errorText };
+      console.error('❌ Opik API error:', response.status, responseText);
+      return { success: false, error: `${response.status}: ${responseText}` };
     }
   } catch (error) {
-    console.error('❌ Network error logging to Opik:', error);
+    console.error('❌ Network error:', error);
+    console.error('❌ Error details:', error.message);
     return { success: false, error: error.message };
   }
 };
@@ -86,7 +102,7 @@ export const logSessionMetrics = async (sessionId: string, metrics: {
 };
 
 export const testOpikConnection = async () => {
-  console.log('🧪 Testing Opik connection with simple test trace...');
+  console.log('🧪 Testing Opik connection...');
   
   const testResult = await logConversation({
     sessionId: `test_${Date.now()}`,
