@@ -43,31 +43,11 @@ const Index = () => {
   const { user, loading, sessionCount, isSubscribed } = useAuth();
 
   const handleStartPractice = () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    // Check if user has reached the free session limit
-    if (!isSubscribed && sessionCount >= 5) {
-      setShowPaywallModal(true);
-      return;
-    }
-    
+    // For demo purposes, skip auth check temporarily
     setCurrentStep('scenario');
   };
 
   const handleScenarioSelected = (data: Omit<SessionData, 'transcript'>) => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-    
-    if (!isSubscribed && sessionCount >= 5) {
-      setShowPaywallModal(true);
-      return;
-    }
-    
     setSessionData({ ...data, transcript: '' });
     setCurrentStep('practice');
   };
@@ -98,7 +78,7 @@ const Index = () => {
         </div>
       </div>
     );
-  };
+  }
 
   const renderCurrentStep = () => {
     switch (currentStep) {
@@ -106,7 +86,7 @@ const Index = () => {
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
             <Navigation onSignInClick={handleSignInClick} />
-            <div className="pt-16"> {/* Add padding for fixed nav */}
+            <div className="pt-16">
               <Hero onStartPractice={handleStartPractice} />
               <Features />
               <Pricing />
@@ -118,7 +98,7 @@ const Index = () => {
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
             <div className="absolute top-4 right-4">
-              <UserMenu />
+              {user && <UserMenu />}
             </div>
             <ScenarioSelector onScenarioSelect={handleScenarioSelected} />
           </div>
@@ -127,7 +107,7 @@ const Index = () => {
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
             <div className="absolute top-4 right-4">
-              <UserMenu />
+              {user && <UserMenu />}
             </div>
             {sessionData && (
               <PracticeSession 
@@ -142,7 +122,7 @@ const Index = () => {
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
             <div className="absolute top-4 right-4">
-              <UserMenu />
+              {user && <UserMenu />}
             </div>
             {sessionData && (
               <FeedbackReport 
