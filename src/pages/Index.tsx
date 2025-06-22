@@ -1,16 +1,17 @@
 
 import { useState } from 'react';
 import { Hero } from '@/components/Hero';
+import { Navigation } from '@/components/Navigation';
 import { ScenarioSelector } from '@/components/ScenarioSelector';
 import { PracticeSession } from '@/components/PracticeSession';
 import { FeedbackReport } from '@/components/FeedbackReport';
 import { Features } from '@/components/Features';
 import { Pricing } from '@/components/Pricing';
+import { Team } from '@/components/Team';
 import { AuthModal } from '@/components/AuthModal';
 import { PaywallModal } from '@/components/PaywallModal';
 import { UserMenu } from '@/components/UserMenu';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 
 export type NegotiationType = 'salary' | 'business' | 'customer_service' | 'job_interview' | 'landlord' | 'freelance';
 
@@ -97,32 +98,20 @@ const Index = () => {
         </div>
       </div>
     );
-  }
+  };
 
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 'welcome':
         return (
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-            {user && (
-              <div className="absolute top-4 right-4 z-50">
-                <UserMenu />
-              </div>
-            )}
-            {!user && (
-              <div className="absolute top-4 right-4 z-50">
-                <Button 
-                  onClick={handleSignInClick} 
-                  variant="outline"
-                  className="bg-white/90 backdrop-blur-sm border-gray-200 hover:bg-white hover:border-blue-300 transition-all duration-300"
-                >
-                  Sign In
-                </Button>
-              </div>
-            )}
-            <Hero onStartPractice={handleStartPractice} />
-            <Features />
-            <Pricing />
+            <Navigation onSignInClick={handleSignInClick} />
+            <div className="pt-16"> {/* Add padding for fixed nav */}
+              <Hero onStartPractice={handleStartPractice} />
+              <Features />
+              <Pricing />
+              <Team />
+            </div>
           </div>
         );
       case 'scenario':

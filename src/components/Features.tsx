@@ -1,99 +1,72 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { MessageSquare, TrendingUp, FileText, Brain, Target, Award } from 'lucide-react';
 
 export const Features = () => {
   const features = [
     {
-      icon: "🎭",
-      title: "Realistic AI Personas",
-      description: "Practice with AI characters that mimic real negotiation partners - from tough hiring managers to budget-conscious clients.",
-      highlight: "Advanced AI Psychology"
+      icon: MessageSquare,
+      title: "AI-Powered Conversations",
+      description: "Practice with intelligent AI personas that adapt to your negotiation style and provide realistic responses.",
+      gradient: "from-blue-500 to-blue-600"
     },
     {
-      icon: "📊",
-      title: "Instant Performance Analysis",
-      description: "Get detailed feedback on your confidence, persuasiveness, and clarity with specific suggestions for improvement.",
-      highlight: "AI-Powered Insights"
+      icon: Brain,
+      title: "Smart Feedback System",
+      description: "Get detailed analysis of your performance with actionable insights to improve your negotiation skills.",
+      gradient: "from-purple-500 to-purple-600"
     },
     {
-      icon: "🎯",
+      icon: Target,
       title: "Scenario-Based Training",
-      description: "Practice salary negotiations, business deals, customer service, and more with customizable scenarios.",
-      highlight: "Real-World Practice"
+      description: "Practice real-world scenarios from salary negotiations to business deals and customer service.",
+      gradient: "from-green-500 to-green-600"
     },
     {
-      icon: "⚡",
-      title: "Real-Time Coaching",
-      description: "Receive live guidance during your practice sessions to improve your negotiation skills on the spot.",
-      highlight: "Live Feedback"
-    },
-    {
-      icon: "📈",
+      icon: TrendingUp,
       title: "Progress Tracking",
-      description: "Monitor your improvement over time with detailed analytics and personalized recommendations.",
-      highlight: "Growth Metrics"
+      description: "Monitor your improvement over time with detailed analytics and performance metrics.",
+      gradient: "from-orange-500 to-orange-600"
     },
     {
-      icon: "🔐",
-      title: "Safe Practice Environment",
-      description: "Build confidence in a risk-free environment before your real high-stakes conversations.",
-      highlight: "Zero Risk Training"
+      icon: FileText,
+      title: "Session Transcripts",
+      description: "Review complete transcripts of your practice sessions to identify patterns and areas for improvement.",
+      gradient: "from-pink-500 to-pink-600"
+    },
+    {
+      icon: Award,
+      title: "Professional Results",
+      description: "Build confidence and achieve better outcomes in real-world negotiations with proven techniques.",
+      gradient: "from-indigo-500 to-indigo-600"
     }
   ];
 
   return (
-    <div className="container mx-auto px-4 py-16 bg-white">
+    <div id="features" className="container mx-auto px-4 py-16 bg-white">
       <div className="text-center mb-16">
         <h2 className="text-4xl font-bold mb-4 text-gray-800">
-          Why Choose Us?
+          Why Choose Verbalize AI?
         </h2>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          Our AI-powered platform provides everything you need to master the art of negotiation
+          Our AI-powered platform provides comprehensive training tools designed to elevate your negotiation skills through practice and feedback.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
         {features.map((feature, index) => (
-          <Card key={index} className="h-full hover:shadow-xl transition-shadow duration-300 bg-gradient-to-br from-white to-gray-50 border-0 shadow-lg">
-            <CardHeader className="text-center pb-4">
-              <div className="text-4xl mb-4">{feature.icon}</div>
-              <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
-              <div className="flex justify-center">
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  {feature.highlight}
-                </Badge>
+          <Card key={index} className="border-0 shadow-lg bg-white hover:shadow-2xl transition-all duration-300 hover:scale-105 group">
+            <CardContent className="p-8 text-center">
+              <div className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <feature.icon className="h-8 w-8 text-white" />
               </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 text-center leading-relaxed">
+              <h3 className="text-xl font-bold mb-3 text-gray-900">{feature.title}</h3>
+              <p className="text-gray-600 leading-relaxed">
                 {feature.description}
               </p>
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      <div className="mt-16 text-center">
-        <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-xl max-w-4xl mx-auto">
-          <CardContent className="p-8">
-            <h3 className="text-2xl font-bold mb-4">Ready to Transform Your Negotiation Skills?</h3>
-            <p className="text-lg mb-6 opacity-90">
-              Join thousands of professionals who have improved their negotiation confidence with our AI platform
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 text-sm">
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                ✓ No Credit Card Required
-              </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                ✓ Instant Feedback
-              </Badge>
-              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                ✓ Professional Results
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
