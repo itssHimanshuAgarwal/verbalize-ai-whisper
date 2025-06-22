@@ -203,12 +203,13 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       const arrayBuffer = await audioBlob.arrayBuffer();
       const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
       
-      // Call speech-to-text service
+      // Call Supabase edge function for speech-to-text
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: { audio: base64Audio }
       });
       
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error('Speech-to-text service error');
       }
       
