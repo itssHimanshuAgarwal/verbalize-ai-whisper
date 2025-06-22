@@ -303,16 +303,16 @@ export const logSessionMetrics = async (sessionId: string, metrics: {
   });
 };
 
-// Enhanced test function
+// Enhanced test function with proper typing
 export const testOpikConnection = async () => {
   console.log('🧪 Running comprehensive Opik connection test...');
   
   const results = {
-    connection: false,
-    authentication: false,
-    project_access: false,
-    trace_creation: false,
-    details: {}
+    connection: false as boolean,
+    authentication: false as boolean,
+    project_access: false as boolean,
+    trace_creation: false as boolean,
+    details: {} as Record<string, any>
   };
 
   try {
