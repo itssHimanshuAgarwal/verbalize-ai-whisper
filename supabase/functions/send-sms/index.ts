@@ -22,9 +22,16 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Sending SMS to:', phoneNumber);
 
-    const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
+    // Use the exact secret names from Supabase
+    const accountSid = Deno.env.get('Account SID') || Deno.env.get('TWILIO_ACCOUNT_SID');
+    const authToken = Deno.env.get('Auth Token') || Deno.env.get('TWILIO_AUTH_TOKEN');
+    const twilioPhoneNumber = Deno.env.get('Phone Number') || Deno.env.get('TWILIO_PHONE_NUMBER');
+
+    console.log('Environment check:', {
+      accountSid: accountSid ? 'Found' : 'Missing',
+      authToken: authToken ? 'Found' : 'Missing',
+      twilioPhoneNumber: twilioPhoneNumber ? 'Found' : 'Missing'
+    });
 
     if (!accountSid || !authToken || !twilioPhoneNumber) {
       console.error('Missing Twilio credentials');
