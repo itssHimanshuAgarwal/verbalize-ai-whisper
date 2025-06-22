@@ -30,7 +30,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log('Environment check:', {
       accountSid: accountSid ? 'Found' : 'Missing',
       authToken: authToken ? 'Found' : 'Missing',
-      twilioPhoneNumber: twilioPhoneNumber ? 'Found' : 'Missing'
+      twilioPhoneNumber: twilioPhoneNumber ? `Found: ${twilioPhoneNumber}` : 'Missing'
     });
 
     if (!accountSid || !authToken || !twilioPhoneNumber) {
@@ -44,12 +44,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Ensure the Twilio phone number is in the correct format
+    let formattedTwilioNumber = twilioPhoneNumber;
+    if (!formattedTwilioNumber.startsWith('+')) {
+      formattedTwilioNumber = '+' + formattedTwilioNumber;
+    }
+
+    console.log('Using Twilio phone number:', formattedTwilioNumber);
+
     // Create the Twilio API request
     const auth = btoa(`${accountSid}:${authToken}`);
     const body = new URLSearchParams({
-      From: twilioPhoneNumber,
+      From: formattedTwilioNumber,
       To: phoneNumber,
       Body: message,
+    });
+
+    console.log('Twilio API request body:', {
+      From: formattedTwilioNumber,
+      To: phoneNumber,
+      Body: message.substring(0, 50) + '...'
     });
 
     const response = await fetch(
