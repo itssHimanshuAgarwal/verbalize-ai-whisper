@@ -23,7 +23,7 @@ export const Team = () => {
             <h3 className="text-xl font-bold mb-2 text-gray-900">Himanshu Ragarwal</h3>
             <p className="text-blue-600 font-medium mb-3">Founder & CEO</p>
             <p className="text-gray-600 text-sm mb-6 leading-relaxed">
-              Passionate about building AI-powered tools that help professionals excel in their careers through better communication and negotiation skills.
+              Ex-software engineer, ex-VC and operator with early-stage startup experience of 4+ years. Building AI-powered tools that help professionals excel in their careers through better communication and negotiation skills.
             </p>
             
             <div className="flex justify-center gap-4">
