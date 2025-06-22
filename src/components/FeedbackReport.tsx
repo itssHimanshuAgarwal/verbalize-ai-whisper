@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { SessionData, FeedbackData } from '@/pages/Index';
+import { SMSShareOption } from '@/components/SMSShareOption';
 
 interface FeedbackReportProps {
   sessionData: SessionData;
@@ -112,6 +113,14 @@ export const FeedbackReport = ({ sessionData, onStartOver, onNewSession }: Feedb
         <Badge className="mt-2 bg-blue-100 text-blue-800">
           Session completed • {new Date().toLocaleDateString()}
         </Badge>
+      </div>
+
+      {/* Add SMS Share Option before the other cards */}
+      <div className="mb-8">
+        <SMSShareOption 
+          feedbackData={feedback} 
+          scenarioType={sessionData.type} 
+        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8 mb-8">
