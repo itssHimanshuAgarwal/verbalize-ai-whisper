@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Hero } from '@/components/Hero';
 import { ScenarioSelector } from '@/components/ScenarioSelector';
 import { PracticeSession } from '@/components/PracticeSession';
 import { FeedbackReport } from '@/components/FeedbackReport';
 import { Features } from '@/components/Features';
-import { Testimonials } from '@/components/Testimonials';
+import { Pricing } from '@/components/Pricing';
 
 export type NegotiationType = 'salary' | 'business' | 'customer_service' | 'job_interview' | 'landlord' | 'freelance';
 
@@ -61,7 +60,7 @@ const Index = () => {
           <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
             <Hero onStartPractice={handleStartPractice} />
             <Features />
-            <Testimonials />
+            <Pricing />
           </div>
         );
       case 'scenario':

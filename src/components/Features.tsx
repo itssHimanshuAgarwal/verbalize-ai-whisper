@@ -46,7 +46,7 @@ export const Features = () => {
     <div className="container mx-auto px-4 py-16 bg-white">
       <div className="text-center mb-16">
         <h2 className="text-4xl font-bold mb-4 text-gray-800">
-          Why Choose Confidant AI?
+          Why Choose Us?
         </h2>
         <p className="text-xl text-gray-600 max-w-3xl mx-auto">
           Our AI-powered platform provides everything you need to master the art of negotiation
@@ -59,9 +59,11 @@ export const Features = () => {
             <CardHeader className="text-center pb-4">
               <div className="text-4xl mb-4">{feature.icon}</div>
               <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {feature.highlight}
-              </Badge>
+              <div className="flex justify-center">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                  {feature.highlight}
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 text-center leading-relaxed">
@@ -77,7 +79,7 @@ export const Features = () => {
           <CardContent className="p-8">
             <h3 className="text-2xl font-bold mb-4">Ready to Transform Your Negotiation Skills?</h3>
             <p className="text-lg mb-6 opacity-90">
-              Join thousands of professionals who have improved their negotiation confidence with Confidant AI
+              Join thousands of professionals who have improved their negotiation confidence with our AI platform
             </p>
             <div className="flex flex-wrap justify-center gap-4 text-sm">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
