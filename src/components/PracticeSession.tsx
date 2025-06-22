@@ -28,6 +28,14 @@ const personas = {
   freelance: { name: "Alex", role: "Startup Founder", personality: "Budget-conscious, relationship-focused" }
 };
 
+// Declare the speech recognition constructor types
+declare global {
+  interface Window {
+    SpeechRecognition?: new() => SpeechRecognition;
+    webkitSpeechRecognition?: new() => SpeechRecognition;
+  }
+}
+
 export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSessionProps) => {
   const [messages, setMessages] = useState<Array<{ role: 'ai' | 'user'; content: string; timestamp: Date }>>([]);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -53,9 +61,10 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
 
   // Initialize speech recognition
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
+    const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognitionConstructor) {
+      const recognitionInstance = new SpeechRecognitionConstructor();
       
       recognitionInstance.continuous = false;
       recognitionInstance.interimResults = false;
