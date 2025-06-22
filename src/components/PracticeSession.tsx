@@ -51,8 +51,13 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       const greeting = generateAIGreeting();
       setMessages([{ role: 'ai', content: greeting, timestamp: new Date() }]);
       setSessionStarted(true);
+      
+      // Speak the greeting automatically
+      setTimeout(() => {
+        speakText(greeting);
+      }, 1000);
     }
-  }, [sessionStarted]);
+  }, [sessionStarted, speakText]);
 
   const testOpikNow = async () => {
     console.log('🧪 Manual Opik test triggered');
@@ -137,9 +142,12 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       
       console.log('🤖 AI responded:', aiResponse);
       
-      // Speak the AI response
-      if (aiResponse) {
+      // Speak the AI response automatically
+      try {
         await speakText(aiResponse);
+        console.log('✅ Speech generated successfully');
+      } catch (error) {
+        console.error('❌ Speech generation failed:', error);
       }
       
       // Log conversation to Opik with detailed logging
@@ -160,8 +168,9 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   };
 
   const handleVoiceInput = (text: string) => {
+    console.log('🎤 Voice input received:', text);
     setCurrentMessage(text);
-    // Auto-send voice messages
+    // Auto-send voice messages after a short delay
     setTimeout(() => {
       if (text.trim()) {
         handleSendMessage();
@@ -170,7 +179,12 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   };
 
   const handleTextToSpeech = async (text: string) => {
-    await speakText(text);
+    try {
+      console.log('🔊 Manual TTS request:', text);
+      await speakText(text);
+    } catch (error) {
+      console.error('❌ Manual TTS failed:', error);
+    }
   };
 
   const handleEndSession = async () => {
@@ -262,16 +276,19 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         </div>
         
         {/* Voice Chat Controls */}
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              🎙️ Voice Chat: Speak your responses or type them below
+              🎙️ <strong>Voice Chat Active:</strong> Click "Voice" to speak your responses, or type below. AI will speak automatically.
             </div>
-            <VoiceChat 
-              onSpeechToText={handleVoiceInput}
-              onTextToSpeech={handleTextToSpeech}
-              isSpeaking={isSpeaking}
-            />
+            <div className="relative">
+              <VoiceChat 
+                onSpeechToText={handleVoiceInput}
+                onTextToSpeech={handleTextToSpeech}
+                isSpeaking={isSpeaking}
+                isListening={isTyping}
+              />
+            </div>
           </div>
         </div>
         
@@ -309,9 +326,10 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => speakText(msg.content)}
+                        onClick={() => handleTextToSpeech(msg.content)}
                         className="h-6 w-6 p-0 hover:bg-gray-200"
                         disabled={isSpeaking}
+                        title="Replay this message"
                       >
                         🔊
                       </Button>
@@ -343,7 +361,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
             <Textarea
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Type your response or use voice input..."
+              placeholder="Type your response or click 'Voice' to speak..."
               className="flex-1 resize-none"
               rows={3}
               onKeyPress={(e) => {
@@ -379,7 +397,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         </Button>
         
         <div className="text-sm text-gray-500">
-          Press Enter to send • Use voice input • Click 🔊 to replay AI responses
+          🎙️ Use voice or text • 🔊 AI speaks automatically • Press Enter to send
         </div>
       </div>
     </div>

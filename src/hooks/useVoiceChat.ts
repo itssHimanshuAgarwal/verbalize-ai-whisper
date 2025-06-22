@@ -1,6 +1,7 @@
 
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useVoiceChat = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -13,31 +14,43 @@ export const useVoiceChat = () => {
     
     try {
       setIsSpeaking(true);
+      console.log('🔊 Starting TTS for:', text.slice(0, 50) + '...');
       
-      // Call ElevenLabs text-to-speech
-      const response = await fetch('/api/text-to-speech', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      // Call the Supabase edge function
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { 
           text: text.slice(0, 500), // Limit text length
           voiceId 
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Text-to-speech failed');
+      if (error) {
+        console.error('❌ Supabase function error:', error);
+        throw new Error(`TTS API error: ${error.message}`);
       }
 
-      const { audioContent } = await response.json();
+      if (!data?.audioContent) {
+        throw new Error('No audio content received from TTS service');
+      }
+
+      console.log('✅ TTS response received, creating audio...');
       
-      // Create audio element and play
+      // Stop any currently playing audio
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current = null;
       }
       
-      audioRef.current = new Audio(`data:audio/mp3;base64,${audioContent}`);
-      audioRef.current.onended = () => setIsSpeaking(false);
-      audioRef.current.onerror = () => {
+      // Create and play new audio
+      audioRef.current = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
+      
+      audioRef.current.onended = () => {
+        console.log('🔊 Audio playback finished');
+        setIsSpeaking(false);
+      };
+      
+      audioRef.current.onerror = (e) => {
+        console.error('❌ Audio playback error:', e);
         setIsSpeaking(false);
         toast({
           title: "Audio playback failed",
@@ -46,13 +59,36 @@ export const useVoiceChat = () => {
         });
       };
       
+      audioRef.current.onloadstart = () => {
+        console.log('🔊 Audio loading started...');
+      };
+      
+      audioRef.current.oncanplay = () => {
+        console.log('🔊 Audio ready to play');
+      };
+      
       await audioRef.current.play();
+      console.log('🔊 Audio playback started successfully');
+      
     } catch (error) {
-      console.error('Error with text-to-speech:', error);
+      console.error('❌ TTS Error details:', error);
       setIsSpeaking(false);
+      
+      // Show more specific error messages
+      let errorMessage = "Could not generate speech from text";
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          errorMessage = "ElevenLabs API key not configured properly";
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Network error - check your connection";
+        } else if (error.message.includes('audio')) {
+          errorMessage = "Audio playback failed - check your browser settings";
+        }
+      }
+      
       toast({
         title: "Speech generation failed",
-        description: "Could not generate speech from text",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -64,6 +100,7 @@ export const useVoiceChat = () => {
       audioRef.current = null;
     }
     setIsSpeaking(false);
+    console.log('🔇 Speech stopped');
   };
 
   return {
