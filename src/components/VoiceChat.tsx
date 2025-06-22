@@ -1,8 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
 interface VoiceChatProps {
@@ -19,12 +22,23 @@ export const VoiceChat = ({
   isSpeaking = false 
 }: VoiceChatProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
 
   const startRecording = async () => {
+    if (!voiceInputEnabled) {
+      toast({
+        title: "Voice input disabled",
+        description: "Enable voice input in settings to use this feature",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
@@ -111,7 +125,7 @@ export const VoiceChat = ({
   };
 
   const handleTextToSpeech = async (text: string) => {
-    if (!audioEnabled) return;
+    if (!voiceOutputEnabled) return;
     
     try {
       onTextToSpeech(text);
@@ -126,7 +140,7 @@ export const VoiceChat = ({
         variant={isRecording ? "destructive" : "outline"}
         size="sm"
         onClick={isRecording ? stopRecording : startRecording}
-        disabled={isListening}
+        disabled={isListening || !voiceInputEnabled}
         className="flex items-center gap-2"
       >
         {isRecording ? (
@@ -137,7 +151,7 @@ export const VoiceChat = ({
         ) : (
           <>
             <Mic className="w-4 h-4" />
-            Voice
+            {voiceInputEnabled ? "Voice" : "Disabled"}
           </>
         )}
       </Button>
@@ -145,25 +159,53 @@ export const VoiceChat = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setAudioEnabled(!audioEnabled)}
+        onClick={() => setShowSettings(!showSettings)}
         className="flex items-center gap-2"
       >
-        {audioEnabled ? (
-          <Volume2 className="w-4 h-4" />
-        ) : (
-          <VolumeX className="w-4 h-4" />
-        )}
+        <Settings className="w-4 h-4" />
       </Button>
 
-      {isRecording && (
+      {showSettings && (
+        <Card className="absolute top-12 right-0 z-10 w-64">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="voice-input">Voice Input</Label>
+              <Switch
+                id="voice-input"
+                checked={voiceInputEnabled}
+                onCheckedChange={setVoiceInputEnabled}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="voice-output">Voice Output</Label>
+              <Switch
+                id="voice-output"
+                checked={voiceOutputEnabled}
+                onCheckedChange={setVoiceOutputEnabled}
+              />
+            </div>
+            <div className="text-xs text-gray-500">
+              Toggle voice features on/off for text-only mode
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isRecording && voiceInputEnabled && (
         <Badge variant="destructive" className="animate-pulse">
           🔴 Recording
         </Badge>
       )}
 
-      {isSpeaking && audioEnabled && (
+      {isSpeaking && voiceOutputEnabled && (
         <Badge variant="secondary" className="animate-pulse">
           🔊 Speaking
+        </Badge>
+      )}
+
+      {!voiceInputEnabled && !voiceOutputEnabled && (
+        <Badge variant="outline">
+          📝 Text Only
         </Badge>
       )}
     </div>
