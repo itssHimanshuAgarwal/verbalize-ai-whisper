@@ -19,27 +19,92 @@ export interface ConversationLog {
   };
 }
 
+// Try the official Opik SDK approach first
 export const logConversation = async (data: ConversationLog) => {
+  console.log('🚀 Starting comprehensive Opik logging debug...');
+  
+  // First, try to verify the API key and connection
+  const connectionTest = await verifyOpikConnection();
+  if (!connectionTest.success) {
+    console.error('❌ Opik connection failed:', connectionTest.error);
+    return null;
+  }
+
+  // Try multiple approaches in sequence
+  const approaches = [
+    () => logWithOpikSDKFormat(data),
+    () => logWithCometFormat(data),
+    () => logWithSimpleFormat(data),
+    () => logWithDirectPostFormat(data)
+  ];
+
+  for (let i = 0; i < approaches.length; i++) {
+    console.log(`🔄 Trying approach ${i + 1}/${approaches.length}...`);
+    try {
+      const result = await approaches[i]();
+      if (result && result.success) {
+        console.log(`✅ Success with approach ${i + 1}:`, result);
+        return result;
+      }
+    } catch (error) {
+      console.error(`❌ Approach ${i + 1} failed:`, error);
+    }
+  }
+
+  console.error('🚨 All logging approaches failed');
+  return null;
+};
+
+// Verify basic connectivity
+const verifyOpikConnection = async () => {
   try {
-    console.log('🔧 Starting Opik conversation logging with data:', {
-      sessionId: data.sessionId,
-      negotiationType: data.negotiationType,
-      persona: data.persona,
-      messageLength: data.userMessage.length,
-      responseLength: data.aiResponse.length
+    console.log('🔍 Verifying Opik connection...');
+    console.log('📍 URL:', OPIK_BASE_URL);
+    console.log('🔑 API Key (first 10 chars):', OPIK_API_KEY.substring(0, 10));
+    console.log('🏢 Workspace:', OPIK_WORKSPACE);
+    console.log('📁 Project:', OPIK_PROJECT_NAME);
+
+    // Try to access the workspace/project info
+    const response = await fetch(`${OPIK_BASE_URL}/workspaces/${OPIK_WORKSPACE}/projects/${OPIK_PROJECT_NAME}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${OPIK_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
     });
 
-    // Create a trace using the v2 API
-    const tracePayload = {
-      id: `conv_${data.sessionId}_${Date.now()}`,
+    console.log('📊 Connection test response:', response.status, response.statusText);
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Project exists:', data);
+      return { success: true, data };
+    } else {
+      const errorText = await response.text();
+      console.log('⚠️ Project check failed, but might still work:', errorText);
+      return { success: true, warning: errorText }; // Continue anyway
+    }
+  } catch (error) {
+    console.error('❌ Connection verification failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Approach 1: Official Opik SDK format
+const logWithOpikSDKFormat = async (data: ConversationLog) => {
+  console.log('📝 Trying Opik SDK format...');
+  
+  const payload = {
+    traces: [{
+      id: `trace_${data.sessionId}_${Date.now()}`,
       name: `${data.negotiationType}_conversation`,
       start_time: data.timestamp.toISOString(),
       end_time: new Date().toISOString(),
       input: {
         user_message: data.userMessage,
+        session_id: data.sessionId,
         persona: data.persona,
-        negotiation_type: data.negotiationType,
-        session_id: data.sessionId
+        negotiation_type: data.negotiationType
       },
       output: {
         ai_response: data.aiResponse,
@@ -48,176 +113,176 @@ export const logConversation = async (data: ConversationLog) => {
       metadata: {
         session_id: data.sessionId,
         negotiation_type: data.negotiationType,
-        persona_name: data.persona,
-        application: 'verbalize-ai',
-        timestamp: data.timestamp.toISOString(),
-        conversation_turn: true
+        persona: data.persona,
+        app: 'verbalize-ai',
+        timestamp: data.timestamp.toISOString()
       },
-      tags: ['verbalize-ai', 'conversation', data.negotiationType, data.persona.toLowerCase()]
-    };
+      tags: ['verbalize-ai', data.negotiationType, 'conversation']
+    }]
+  };
 
-    console.log('📤 Sending trace payload to Opik:', JSON.stringify(tracePayload, null, 2));
-    console.log('🌐 API URL:', `${OPIK_BASE_URL}/traces`);
-    console.log('🔑 Headers:', {
+  console.log('📤 SDK payload:', JSON.stringify(payload, null, 2));
+
+  const response = await fetch(`${OPIK_BASE_URL}/traces`, {
+    method: 'POST',
+    headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPIK_API_KEY.substring(0, 10)}...`,
+      'Authorization': `Bearer ${OPIK_API_KEY}`,
       'Comet-Workspace': OPIK_WORKSPACE,
       'Comet-Project-Name': OPIK_PROJECT_NAME
-    });
+    },
+    body: JSON.stringify(payload)
+  });
 
-    const response = await fetch(`${OPIK_BASE_URL}/traces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`,
-        'Comet-Workspace': OPIK_WORKSPACE,
-        'Comet-Project-Name': OPIK_PROJECT_NAME
-      },
-      body: JSON.stringify([tracePayload])
-    });
+  console.log('📥 SDK response:', response.status, response.statusText);
 
-    console.log('📥 Opik response status:', response.status);
-    console.log('📥 Opik response headers:', Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Opik conversation logging failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText,
-        url: response.url
-      });
-      
-      // Try the alternative approach
-      console.log('🔄 Trying alternative logging approach...');
-      return await logConversationAlternative(data);
-    }
-
+  if (response.ok) {
     const result = await response.json();
-    console.log('✅ Successfully logged conversation to Opik:', result);
-    return result;
-  } catch (error) {
-    console.error('🚨 Error in logConversation:', error);
-    console.log('🔄 Trying alternative logging approach...');
-    return await logConversationAlternative(data);
+    return { success: true, method: 'SDK', result };
+  } else {
+    const error = await response.text();
+    throw new Error(`SDK format failed: ${response.status} - ${error}`);
   }
 };
 
-// Alternative conversation logging method
-const logConversationAlternative = async (data: ConversationLog) => {
-  try {
-    // Try different endpoint structure
-    const altPayload = {
-      project_name: OPIK_PROJECT_NAME,
-      traces: [{
-        id: `alt_conv_${data.sessionId}_${Date.now()}`,
-        name: `${data.negotiationType}_exchange`,
-        start_time: data.timestamp.toISOString(),
-        end_time: new Date().toISOString(),
-        input: JSON.stringify({
-          user_message: data.userMessage,
-          persona: data.persona,
-          type: data.negotiationType
-        }),
-        output: JSON.stringify({
-          ai_response: data.aiResponse
-        }),
-        metadata: {
-          session_id: data.sessionId,
-          negotiation_type: data.negotiationType,
-          persona: data.persona,
-          app: 'verbalize-ai'
-        },
-        tags: ['verbalize-ai', data.negotiationType, 'conversation']
-      }]
-    };
+// Approach 2: Comet ML format
+const logWithCometFormat = async (data: ConversationLog) => {
+  console.log('📝 Trying Comet ML format...');
+  
+  const payload = {
+    workspace: OPIK_WORKSPACE,
+    project_name: OPIK_PROJECT_NAME,
+    experiment_name: `session_${data.sessionId}`,
+    log_other: {
+      user_message: data.userMessage,
+      ai_response: data.aiResponse,
+      persona: data.persona,
+      negotiation_type: data.negotiationType,
+      timestamp: data.timestamp.toISOString()
+    },
+    log_parameter: {
+      session_id: data.sessionId,
+      negotiation_type: data.negotiationType,
+      persona: data.persona
+    }
+  };
 
-    console.log('🔄 Trying alternative payload:', JSON.stringify(altPayload, null, 2));
+  console.log('📤 Comet payload:', JSON.stringify(payload, null, 2));
 
-    // Try posting to project-specific endpoint
-    const altResponse = await fetch(`${OPIK_BASE_URL}/projects/${OPIK_PROJECT_NAME}/traces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`,
-        'Comet-Workspace': OPIK_WORKSPACE
-      },
-      body: JSON.stringify(altPayload)
-    });
+  const response = await fetch(`${OPIK_BASE_URL}/experiments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPIK_API_KEY}`
+    },
+    body: JSON.stringify(payload)
+  });
 
-    console.log('📥 Alternative response status:', altResponse.status);
+  console.log('📥 Comet response:', response.status, response.statusText);
 
-    if (!altResponse.ok) {
-      const errorText = await altResponse.text();
-      console.error('❌ Alternative logging also failed:', {
-        status: altResponse.status,
-        statusText: altResponse.statusText,
-        body: errorText
-      });
+  if (response.ok) {
+    const result = await response.json();
+    return { success: true, method: 'Comet', result };
+  } else {
+    const error = await response.text();
+    throw new Error(`Comet format failed: ${response.status} - ${error}`);
+  }
+};
+
+// Approach 3: Simple format
+const logWithSimpleFormat = async (data: ConversationLog) => {
+  console.log('📝 Trying simple format...');
+  
+  const payload = {
+    name: `verbalize_${data.negotiationType}_${Date.now()}`,
+    input: data.userMessage,
+    output: data.aiResponse,
+    metadata: {
+      session_id: data.sessionId,
+      persona: data.persona,
+      type: data.negotiationType,
+      app: 'verbalize-ai'
+    }
+  };
+
+  console.log('📤 Simple payload:', JSON.stringify(payload, null, 2));
+
+  const response = await fetch(`${OPIK_BASE_URL}/projects/${OPIK_PROJECT_NAME}/traces`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${OPIK_API_KEY}`,
+      'Comet-Workspace': OPIK_WORKSPACE
+    },
+    body: JSON.stringify(payload)
+  });
+
+  console.log('📥 Simple response:', response.status, response.statusText);
+
+  if (response.ok) {
+    const result = await response.json();
+    return { success: true, method: 'Simple', result };
+  } else {
+    const error = await response.text();
+    throw new Error(`Simple format failed: ${response.status} - ${error}`);
+  }
+};
+
+// Approach 4: Direct POST format
+const logWithDirectPostFormat = async (data: ConversationLog) => {
+  console.log('📝 Trying direct POST format...');
+  
+  const payload = {
+    trace_id: `direct_${data.sessionId}_${Date.now()}`,
+    session_id: data.sessionId,
+    user_input: data.userMessage,
+    ai_output: data.aiResponse,
+    persona: data.persona,
+    negotiation_type: data.negotiationType,
+    timestamp: data.timestamp.toISOString(),
+    application: 'verbalize-ai'
+  };
+
+  console.log('📤 Direct payload:', JSON.stringify(payload, null, 2));
+
+  // Try different endpoints
+  const endpoints = [
+    `${OPIK_BASE_URL}/trace`,
+    `${OPIK_BASE_URL}/logs`,
+    `${OPIK_BASE_URL}/events`,
+    `https://api.comet.ml/api/rest/v2/write/experiment/log`
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`🎯 Trying endpoint: ${endpoint}`);
       
-      // Try one more approach - direct trace creation
-      return await logWithDirectAPI(data);
-    }
-
-    const result = await altResponse.json();
-    console.log('✅ Alternative logging successful:', result);
-    return result;
-  } catch (error) {
-    console.error('🚨 Alternative logging error:', error);
-    return await logWithDirectAPI(data);
-  }
-};
-
-// Direct API approach
-const logWithDirectAPI = async (data: ConversationLog) => {
-  try {
-    console.log('🔧 Trying direct API approach...');
-    
-    const directPayload = {
-      name: `verbalize_${data.negotiationType}_${Date.now()}`,
-      input: data.userMessage,
-      output: data.aiResponse,
-      start_time: data.timestamp.toISOString(),
-      end_time: new Date().toISOString(),
-      metadata: {
-        session_id: data.sessionId,
-        negotiation_type: data.negotiationType,
-        persona: data.persona,
-        source: 'verbalize-ai'
-      }
-    };
-
-    console.log('📤 Direct API payload:', JSON.stringify(directPayload, null, 2));
-
-    const directResponse = await fetch(`${OPIK_BASE_URL}/traces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`,
-        'Comet-Workspace': OPIK_WORKSPACE,
-        'Comet-Project-Name': OPIK_PROJECT_NAME
-      },
-      body: JSON.stringify(directPayload)
-    });
-
-    console.log('📥 Direct API response status:', directResponse.status);
-
-    if (directResponse.ok) {
-      const result = await directResponse.json();
-      console.log('✅ Direct API logging successful:', result);
-      return result;
-    } else {
-      const errorText = await directResponse.text();
-      console.error('❌ All logging attempts failed. Final error:', {
-        status: directResponse.status,
-        body: errorText
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPIK_API_KEY}`,
+          'Comet-Workspace': OPIK_WORKSPACE,
+          'Comet-Project-Name': OPIK_PROJECT_NAME
+        },
+        body: JSON.stringify(payload)
       });
-      return null;
+
+      console.log(`📥 Response from ${endpoint}:`, response.status, response.statusText);
+
+      if (response.ok) {
+        const result = await response.json();
+        return { success: true, method: 'Direct', endpoint, result };
+      } else {
+        const error = await response.text();
+        console.log(`❌ Failed ${endpoint}:`, error);
+      }
+    } catch (error) {
+      console.log(`❌ Error with ${endpoint}:`, error.message);
     }
-  } catch (error) {
-    console.error('🚨 Direct API logging failed:', error);
-    return null;
   }
+
+  throw new Error('All direct POST attempts failed');
 };
 
 export const logSessionMetrics = async (sessionId: string, metrics: {
@@ -226,117 +291,75 @@ export const logSessionMetrics = async (sessionId: string, metrics: {
   persuasiveness: number;
   overallScore: number;
 }) => {
-  try {
-    console.log('📊 Logging session metrics to Opik:', { sessionId, metrics });
-
-    const metricsPayload = {
-      id: `metrics_${sessionId}_${Date.now()}`,
-      name: `session_summary_${sessionId}`,
-      start_time: new Date().toISOString(),
-      end_time: new Date().toISOString(),
-      input: { 
-        session_id: sessionId,
-        type: 'session_metrics'
-      },
-      output: metrics,
-      metadata: {
-        session_id: sessionId,
-        type: 'session_summary',
-        application: 'verbalize-ai'
-      },
-      tags: ['verbalize-ai', 'metrics', 'session-summary']
-    };
-
-    console.log('📤 Metrics payload:', JSON.stringify(metricsPayload, null, 2));
-
-    const response = await fetch(`${OPIK_BASE_URL}/traces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`,
-        'Comet-Workspace': OPIK_WORKSPACE,
-        'Comet-Project-Name': OPIK_PROJECT_NAME
-      },
-      body: JSON.stringify([metricsPayload])
-    });
-
-    console.log('📥 Metrics response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Session metrics logging failed:', {
-        status: response.status,
-        body: errorText
-      });
-      return null;
-    }
-
-    const result = await response.json();
-    console.log('✅ Successfully logged session metrics:', result);
-    return result;
-  } catch (error) {
-    console.error('🚨 Session metrics logging error:', error);
-    return null;
-  }
+  console.log('📊 Logging session metrics...');
+  return await logConversation({
+    sessionId: `metrics_${sessionId}`,
+    userMessage: 'Session completed',
+    aiResponse: `Metrics: ${JSON.stringify(metrics)}`,
+    timestamp: new Date(),
+    negotiationType: 'session_metrics',
+    persona: 'System',
+    metrics
+  });
 };
 
-// Enhanced test function to verify Opik connection
+// Enhanced test function
 export const testOpikConnection = async () => {
+  console.log('🧪 Running comprehensive Opik connection test...');
+  
+  const results = {
+    connection: false,
+    authentication: false,
+    project_access: false,
+    trace_creation: false,
+    details: {}
+  };
+
   try {
-    console.log('🧪 Testing Opik connection...');
-    console.log('🔧 Configuration:', {
-      baseUrl: OPIK_BASE_URL,
-      workspace: OPIK_WORKSPACE,
-      project: OPIK_PROJECT_NAME,
-      apiKeyPrefix: OPIK_API_KEY.substring(0, 10) + '...'
+    // Test 1: Basic connection
+    console.log('🔍 Test 1: Basic connection...');
+    const basicResponse = await fetch(OPIK_BASE_URL, { method: 'GET' });
+    results.connection = basicResponse.status < 500;
+    results.details.connection = { status: basicResponse.status, statusText: basicResponse.statusText };
+    console.log('✅ Connection test:', results.connection);
+
+    // Test 2: Authentication
+    console.log('🔍 Test 2: Authentication...');
+    const authResponse = await fetch(`${OPIK_BASE_URL}/workspaces`, {
+      headers: { 'Authorization': `Bearer ${OPIK_API_KEY}` }
     });
+    results.authentication = authResponse.status === 200 || authResponse.status === 403; // 403 means auth worked but no access
+    results.details.authentication = { status: authResponse.status, statusText: authResponse.statusText };
+    console.log('✅ Authentication test:', results.authentication);
 
-    const testTrace = {
-      id: `test_${Date.now()}`,
-      name: 'connection_test',
-      start_time: new Date().toISOString(),
-      end_time: new Date().toISOString(),
-      input: { test: 'connection', timestamp: new Date().toISOString() },
-      output: { status: 'testing', app: 'verbalize-ai' },
-      metadata: { 
-        test: true, 
-        app: 'verbalize-ai',
-        connection_test: true
-      },
-      tags: ['test', 'verbalize-ai', 'connection-check']
-    };
-
-    console.log('📤 Test trace payload:', JSON.stringify(testTrace, null, 2));
-
-    const response = await fetch(`${OPIK_BASE_URL}/traces`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPIK_API_KEY}`,
-        'Comet-Workspace': OPIK_WORKSPACE,
-        'Comet-Project-Name': OPIK_PROJECT_NAME
-      },
-      body: JSON.stringify([testTrace])
+    // Test 3: Project access
+    console.log('🔍 Test 3: Project access...');
+    const projectResponse = await fetch(`${OPIK_BASE_URL}/workspaces/${OPIK_WORKSPACE}/projects`, {
+      headers: { 'Authorization': `Bearer ${OPIK_API_KEY}` }
     });
+    results.project_access = projectResponse.status === 200;
+    results.details.project_access = { status: projectResponse.status, statusText: projectResponse.statusText };
+    console.log('✅ Project access test:', results.project_access);
 
-    console.log('📥 Test response status:', response.status);
-    console.log('📥 Test response headers:', Object.fromEntries(response.headers.entries()));
+    // Test 4: Trace creation
+    console.log('🔍 Test 4: Trace creation...');
+    const testResult = await logConversation({
+      sessionId: `test_${Date.now()}`,
+      userMessage: 'Test message',
+      aiResponse: 'Test response',
+      timestamp: new Date(),
+      negotiationType: 'test',
+      persona: 'Test'
+    });
+    results.trace_creation = !!testResult;
+    results.details.trace_creation = testResult;
+    console.log('✅ Trace creation test:', results.trace_creation);
 
-    if (response.ok) {
-      const result = await response.json();
-      console.log('✅ Opik connection test successful:', result);
-      return { success: true, result };
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Opik connection test failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
-      return { success: false, error: errorText, status: response.status };
-    }
+    console.log('🏁 Comprehensive test results:', results);
+    return { success: Object.values(results).every(r => r !== false), results };
+
   } catch (error) {
-    console.error('🚨 Opik connection test error:', error);
-    return { success: false, error: error.message };
+    console.error('🚨 Test suite error:', error);
+    return { success: false, error: error.message, results };
   }
 };
