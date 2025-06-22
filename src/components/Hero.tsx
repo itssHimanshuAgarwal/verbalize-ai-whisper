@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MessageSquare, TrendingUp, FileText, Play, Sparkles, Zap, Shield } from 'lucide-react';
@@ -30,9 +29,9 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           </div>
 
           <h1 className="text-4xl lg:text-7xl font-bold text-gray-900 mb-6 animate-fade-in">
-            AI agents for{' '}
+            AI-powered{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-              magical negotiation
+              negotiation training
             </span>
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
@@ -42,7 +41,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto animate-fade-in">
             Verbalize AI is the complete platform for building & deploying AI negotiation 
-            training agents for your career success.
+            training tools for your career success.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-fade-in">
@@ -144,7 +143,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           </h2>
           <p className="text-lg text-gray-600 mb-8 max-w-4xl mx-auto">
             With Verbalize AI, your practice sessions can effortlessly find improvement areas, resolve 
-            confidence issues, and take meaningful actions through seamless and engaging AI-driven conversations.
+            confidence issues, and take meaningful actions through seamless and engaging AI-powered conversations.
           </p>
           
           <div className="bg-white rounded-2xl p-6 shadow-xl max-w-2xl mx-auto">
