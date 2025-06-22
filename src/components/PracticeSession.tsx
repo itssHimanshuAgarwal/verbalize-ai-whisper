@@ -8,6 +8,8 @@ import { logConversation, logSessionMetrics, testOpikConnection } from '@/servic
 import { saveSessionResult } from '@/components/SessionResultSaver';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { VoiceChat } from '@/components/VoiceChat';
+import { useVoiceChat } from '@/hooks/useVoiceChat';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -35,6 +37,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const persona = personas[sessionData.type];
 
   const { user, refreshSessionCount } = useAuth();
+  const { isSpeaking, speakText, stopSpeaking } = useVoiceChat();
 
   useEffect(() => {
     if (!sessionStarted) {
@@ -134,6 +137,11 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       
       console.log('🤖 AI responded:', aiResponse);
       
+      // Speak the AI response
+      if (aiResponse) {
+        await speakText(aiResponse);
+      }
+      
       // Log conversation to Opik with detailed logging
       console.log('📝 About to log conversation to Opik...');
       const logResult = await logConversation({
@@ -149,6 +157,20 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       
       setIsTyping(false);
     }, 1500 + Math.random() * 1000);
+  };
+
+  const handleVoiceInput = (text: string) => {
+    setCurrentMessage(text);
+    // Auto-send voice messages
+    setTimeout(() => {
+      if (text.trim()) {
+        handleSendMessage();
+      }
+    }, 500);
+  };
+
+  const handleTextToSpeech = async (text: string) => {
+    await speakText(text);
   };
 
   const handleEndSession = async () => {
@@ -239,6 +261,20 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
           </div>
         </div>
         
+        {/* Voice Chat Controls */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              🎙️ Voice Chat: Speak your responses or type them below
+            </div>
+            <VoiceChat 
+              onSpeechToText={handleVoiceInput}
+              onTextToSpeech={handleTextToSpeech}
+              isSpeaking={isSpeaking}
+            />
+          </div>
+        </div>
+        
         <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-2">
@@ -267,8 +303,19 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-100 text-gray-800'
                 }`}>
-                  <div className="font-medium text-sm mb-1">
+                  <div className="font-medium text-sm mb-1 flex items-center gap-2">
                     {msg.role === 'user' ? 'You' : persona.name}
+                    {msg.role === 'ai' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => speakText(msg.content)}
+                        className="h-6 w-6 p-0 hover:bg-gray-200"
+                        disabled={isSpeaking}
+                      >
+                        🔊
+                      </Button>
+                    )}
                   </div>
                   <div>{msg.content}</div>
                   <div className="text-xs opacity-70 mt-2">
@@ -296,7 +343,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
             <Textarea
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Type your response..."
+              placeholder="Type your response or use voice input..."
               className="flex-1 resize-none"
               rows={3}
               onKeyPress={(e) => {
@@ -332,7 +379,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         </Button>
         
         <div className="text-sm text-gray-500">
-          Press Enter to send • Shift+Enter for new line
+          Press Enter to send • Use voice input • Click 🔊 to replay AI responses
         </div>
       </div>
     </div>
