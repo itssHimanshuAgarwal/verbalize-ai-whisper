@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { SessionData } from '@/pages/Index';
 import { logConversation, logSessionMetrics, testOpikConnection } from '@/services/opikService';
 import { saveSessionResult } from '@/components/SessionResultSaver';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -31,6 +33,8 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const [opikStatus, setOpikStatus] = useState<string>('untested');
 
   const persona = personas[sessionData.type];
+
+  const { user, refreshSessionCount } = useAuth();
 
   useEffect(() => {
     if (!sessionStarted) {
@@ -155,6 +159,30 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       .join('\n\n');
     
     console.log('📋 Generated transcript:', transcript);
+    
+    // Save session to database if user is logged in
+    if (user) {
+      try {
+        const { error } = await supabase
+          .from('practice_sessions')
+          .insert({
+            user_id: user.id,
+            session_type: sessionData.type,
+            scenario: sessionData.scenario,
+            transcript: transcript
+          });
+        
+        if (error) {
+          console.error('Error saving session:', error);
+        } else {
+          console.log('✅ Session saved to database');
+          // Refresh session count
+          await refreshSessionCount();
+        }
+      } catch (error) {
+        console.error('Error saving session:', error);
+      }
+    }
     
     // Save session result to localStorage
     const savedResult = saveSessionResult({
