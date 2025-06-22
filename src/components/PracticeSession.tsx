@@ -37,7 +37,14 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const persona = personas[sessionData.type];
 
   const { user, refreshSessionCount } = useAuth();
-  const { isSpeaking, speakText, stopSpeaking } = useVoiceChat();
+  const { 
+    isSpeaking, 
+    speakText, 
+    stopSpeaking, 
+    selectedVoice, 
+    setSelectedVoice, 
+    availableVoices 
+  } = useVoiceChat();
 
   useEffect(() => {
     if (!sessionStarted) {
@@ -279,7 +286,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              🎙️ <strong>Voice Chat Active:</strong> Click "Voice" to speak your responses, or type below. AI will speak automatically.
+              🎙️ <strong>Voice Chat Active:</strong> Click "Voice" to speak your responses, choose your preferred AI voice in settings.
             </div>
             <div className="relative">
               <VoiceChat 
@@ -287,6 +294,9 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
                 onTextToSpeech={handleTextToSpeech}
                 isSpeaking={isSpeaking}
                 isListening={isTyping}
+                selectedVoice={selectedVoice}
+                onVoiceChange={setSelectedVoice}
+                availableVoices={availableVoices}
               />
             </div>
           </div>

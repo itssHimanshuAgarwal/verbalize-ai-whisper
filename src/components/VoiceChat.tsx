@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 interface VoiceChatProps {
@@ -13,13 +14,19 @@ interface VoiceChatProps {
   onTextToSpeech: (text: string) => void;
   isListening?: boolean;
   isSpeaking?: boolean;
+  selectedVoice?: string;
+  onVoiceChange?: (voiceId: string) => void;
+  availableVoices?: Array<{ id: string; name: string; description: string }>;
 }
 
 export const VoiceChat = ({ 
   onSpeechToText, 
   onTextToSpeech, 
   isListening = false, 
-  isSpeaking = false 
+  isSpeaking = false,
+  selectedVoice = 'EXAVITQu4vr4xnSDxMaL',
+  onVoiceChange,
+  availableVoices = []
 }: VoiceChatProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [voiceInputEnabled, setVoiceInputEnabled] = useState(true);
@@ -80,7 +87,7 @@ export const VoiceChat = ({
       console.error('Error starting recording:', error);
       toast({
         title: "Recording failed",
-        description: "Could not access microphone",
+        description: "Could not access microphone. Please check permissions.",
         variant: "destructive",
       });
     }
@@ -113,12 +120,16 @@ export const VoiceChat = ({
       const { text } = await response.json();
       if (text.trim()) {
         onSpeechToText(text);
+        toast({
+          title: "Speech recognized",
+          description: `"${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`,
+        });
       }
     } catch (error) {
       console.error('Error processing audio:', error);
       toast({
         title: "Speech recognition failed",
-        description: "Could not convert speech to text",
+        description: "Could not convert speech to text. Please try again.",
         variant: "destructive",
       });
     }
@@ -135,7 +146,7 @@ export const VoiceChat = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 relative">
       <Button
         variant={isRecording ? "destructive" : "outline"}
         size="sm"
@@ -166,7 +177,7 @@ export const VoiceChat = ({
       </Button>
 
       {showSettings && (
-        <Card className="absolute top-12 right-0 z-10 w-64">
+        <Card className="absolute top-12 right-0 z-10 w-80">
           <CardContent className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <Label htmlFor="voice-input">Voice Input</Label>
@@ -184,8 +195,30 @@ export const VoiceChat = ({
                 onCheckedChange={setVoiceOutputEnabled}
               />
             </div>
+            
+            {voiceOutputEnabled && availableVoices.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="voice-selection">AI Voice</Label>
+                <Select value={selectedVoice} onValueChange={onVoiceChange}>
+                  <SelectTrigger id="voice-selection">
+                    <SelectValue placeholder="Select a voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVoices.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{voice.name}</span>
+                          <span className="text-sm text-gray-500">{voice.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
             <div className="text-xs text-gray-500">
-              Toggle voice features on/off for text-only mode
+              Configure voice features and select your preferred AI voice
             </div>
           </CardContent>
         </Card>
