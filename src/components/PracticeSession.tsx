@@ -36,7 +36,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [opikStatus, setOpikStatus] = useState<string>('untested');
   const [isRecording, setIsRecording] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
 
   const persona = personas[sessionData.type];
   const { toast } = useToast();
@@ -50,6 +50,59 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     setSelectedVoice, 
     availableVoices 
   } = useVoiceChat();
+
+  // Initialize speech recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognitionInstance = new SpeechRecognition();
+      
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = 'en-US';
+      
+      recognitionInstance.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        console.log('🎤 Speech recognized:', transcript);
+        setCurrentMessage(transcript);
+        setIsRecording(false);
+        
+        toast({
+          title: "✅ Speech recognized",
+          description: `"${transcript.slice(0, 50)}${transcript.length > 50 ? '...' : ''}"`,
+        });
+        
+        // Auto-send the message after a short delay
+        setTimeout(() => {
+          handleSendMessage(transcript);
+        }, 1000);
+      };
+      
+      recognitionInstance.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsRecording(false);
+        
+        let errorMessage = "Could not recognize speech. Please try again.";
+        if (event.error === 'no-speech') {
+          errorMessage = "No speech detected. Please speak louder or closer to the microphone.";
+        } else if (event.error === 'not-allowed') {
+          errorMessage = "Microphone access denied. Please allow microphone permissions.";
+        }
+        
+        toast({
+          title: "Speech recognition failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      };
+      
+      recognitionInstance.onend = () => {
+        setIsRecording(false);
+      };
+      
+      setRecognition(recognitionInstance);
+    }
+  }, [toast]);
 
   useEffect(() => {
     if (!sessionStarted) {
@@ -136,40 +189,18 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   };
 
   const startVoiceRecording = async () => {
+    if (!recognition) {
+      toast({
+        title: "Speech recognition not supported",
+        description: "Your browser doesn't support speech recognition. Please use a Chrome-based browser.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true
-        }
-      });
-      
-      const recorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
-      
-      const audioChunks: Blob[] = [];
-      
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.push(event.data);
-        }
-      };
-      
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        await processVoiceToText(audioBlob);
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-        setMediaRecorder(null);
-      };
-      
-      recorder.start();
-      setMediaRecorder(recorder);
       setIsRecording(true);
+      recognition.start();
       
       toast({
         title: "🎤 Recording started",
@@ -177,69 +208,19 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
       });
     } catch (error) {
       console.error('Error starting recording:', error);
+      setIsRecording(false);
       toast({
         title: "Recording failed",
-        description: "Could not access microphone. Please check permissions.",
+        description: "Could not start speech recognition. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const stopVoiceRecording = () => {
-    if (mediaRecorder && isRecording) {
-      mediaRecorder.stop();
+    if (recognition && isRecording) {
+      recognition.stop();
       setIsRecording(false);
-      
-      toast({
-        title: "🔄 Processing...",
-        description: "Converting your speech to text...",
-      });
-    }
-  };
-
-  const processVoiceToText = async (audioBlob: Blob) => {
-    try {
-      // Convert blob to base64
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-      
-      // Call Supabase edge function for speech-to-text
-      const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio }
-      });
-      
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error('Speech-to-text service error');
-      }
-      
-      const text = data?.text;
-      if (text && text.trim()) {
-        setCurrentMessage(text);
-        
-        toast({
-          title: "✅ Speech recognized",
-          description: `"${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`,
-        });
-        
-        // Auto-send the message after a short delay
-        setTimeout(() => {
-          handleSendMessage(text);
-        }, 1000);
-      } else {
-        toast({
-          title: "No speech detected",
-          description: "Please try speaking again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error processing voice:', error);
-      toast({
-        title: "Speech recognition failed",
-        description: "Could not convert speech to text. Please try again.",
-        variant: "destructive",
-      });
     }
   };
 
