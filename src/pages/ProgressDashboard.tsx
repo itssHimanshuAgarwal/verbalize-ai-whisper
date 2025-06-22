@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,26 +23,53 @@ const ProgressDashboard = () => {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const loadSessionData = () => {
+    try {
+      console.log('Loading session data...');
+      const sessionResults = getSessionResults();
+      console.log('Retrieved session results:', sessionResults);
+      setSessions(sessionResults);
+    } catch (error) {
+      console.error('Error loading session data:', error);
+      setSessions([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Load actual session data from localStorage
-    const loadSessionData = () => {
-      try {
-        console.log('Loading session data...');
-        const sessionResults = getSessionResults();
-        console.log('Retrieved session results:', sessionResults);
-        setSessions(sessionResults);
-      } catch (error) {
-        console.error('Error loading session data:', error);
-        setSessions([]);
-      } finally {
-        setIsLoading(false);
+    // Load data immediately when component mounts
+    loadSessionData();
+  }, []);
+
+  // Add focus event listener to reload data when user returns to the tab/page
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Page focused, reloading session data...');
+      loadSessionData();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, reloading session data...');
+        loadSessionData();
       }
     };
 
-    // Small delay for better UX
-    const timer = setTimeout(loadSessionData, 500);
-    return () => clearTimeout(timer);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
+
+  // Add a manual refresh function
+  const handleRefresh = () => {
+    setIsLoading(true);
+    loadSessionData();
+  };
 
   const EmptyState = () => (
     <div className="text-center py-12">
@@ -93,10 +121,19 @@ const ProgressDashboard = () => {
             </Button>
             <h1 className="text-3xl font-bold text-gray-800">Progress Dashboard</h1>
           </div>
-          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            <BarChart3 className="w-4 h-4 mr-1" />
-            {sessions.length} Sessions Completed
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              className="flex items-center gap-2"
+            >
+              🔄 Refresh
+            </Button>
+            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+              <BarChart3 className="w-4 h-4 mr-1" />
+              {sessions.length} Sessions Completed
+            </Badge>
+          </div>
         </div>
 
         {isLoading ? (
