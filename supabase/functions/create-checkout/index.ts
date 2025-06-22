@@ -58,13 +58,13 @@ serve(async (req) => {
       price_monthly: {
         currency: "usd",
         product_data: { name: "Negotiation Practice Pro - Monthly" },
-        unit_amount: 999, // $9.99
+        unit_amount: 1500, // $15.00
         recurring: { interval: "month" as const },
       },
       price_yearly: {
         currency: "usd",
         product_data: { name: "Negotiation Practice Pro - Yearly" },
-        unit_amount: 9999, // $99.99
+        unit_amount: 15000, // $150.00
         recurring: { interval: "year" as const },
       }
     };

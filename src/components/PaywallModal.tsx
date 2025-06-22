@@ -20,7 +20,9 @@ export const PaywallModal = ({ isOpen, onClose, sessionCount }: PaywallModalProp
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { priceId: 'price_monthly' }
+      });
       
       if (error) throw error;
       
@@ -58,9 +60,12 @@ export const PaywallModal = ({ isOpen, onClose, sessionCount }: PaywallModalProp
               Negotiation Practice Pro
             </CardTitle>
             <div className="text-center">
-              <span className="text-3xl font-bold text-blue-900">$7.99</span>
+              <span className="text-3xl font-bold text-blue-900">$15</span>
               <span className="text-blue-700">/month</span>
             </div>
+            <p className="text-center text-sm text-blue-600 italic">
+              Worth 3 coffees/monthly - definitely worth it! ☕️
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">

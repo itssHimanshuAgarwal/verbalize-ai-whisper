@@ -23,8 +23,9 @@ export const Pricing = () => {
     },
     {
       name: "Pro",
-      price: "$29",
+      price: "$15",
       period: "per month",
+      tagline: "Worth 3 coffees/monthly - definitely worth it! ☕️",
       description: "For professionals serious about improving their negotiation skills",
       features: [
         "Unlimited practice sessions",
@@ -96,6 +97,11 @@ export const Pricing = () => {
                   {plan.period}
                 </span>
               </div>
+              {plan.tagline && (
+                <p className={`text-sm italic mb-2 ${plan.popular ? 'text-yellow-200' : 'text-gray-600'}`}>
+                  {plan.tagline}
+                </p>
+              )}
               <p className={`text-sm ${plan.popular ? 'text-blue-100' : 'text-gray-600'}`}>
                 {plan.description}
               </p>
