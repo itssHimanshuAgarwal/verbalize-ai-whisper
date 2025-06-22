@@ -1,17 +1,13 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Send, Square } from 'lucide-react';
-import { SessionData } from '@/pages/Index';
-import { logConversation, logSessionMetrics, testOpikConnection } from '@/services/opikService';
-import { saveSessionResult } from '@/components/SessionResultSaver';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { VoiceChat } from '@/components/VoiceChat';
-import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { SessionData } from '@/pages/Index';
+import { VoiceRecorder } from './practice/VoiceRecorder';
+import { ChatMessage } from './practice/ChatMessage';
+import { PracticeHeader } from './practice/PracticeHeader';
+import { Loader2, Send } from 'lucide-react';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -19,529 +15,269 @@ interface PracticeSessionProps {
   onBack: () => void;
 }
 
-const personas = {
-  salary: { name: "Sarah", role: "Hiring Manager", personality: "Professional, data-driven, but fair" },
-  business: { name: "Marcus", role: "Business Executive", personality: "Experienced, results-focused" },
-  customer_service: { name: "Jennifer", role: "Frustrated Customer", personality: "Emotional, demanding, but reasonable" },
-  job_interview: { name: "David", role: "Senior Interviewer", personality: "Thorough, challenging, but respectful" },
+const AI_PERSONAS = {
+  salary: { name: "Sarah", role: "HR Manager", personality: "Professional, analytical" },
+  business: { name: "Marcus", role: "Business Owner", personality: "Assertive, results-driven" },
+  customer_service: { name: "Emma", role: "Customer", personality: "Frustrated, demanding resolution" },
+  job_interview: { name: "David", role: "Hiring Manager", personality: "Thorough, evaluative" },
   landlord: { name: "Patricia", role: "Property Manager", personality: "Business-minded, policy-focused" },
   freelance: { name: "Alex", role: "Startup Founder", personality: "Budget-conscious, relationship-focused" }
 };
 
 export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSessionProps) => {
   const [messages, setMessages] = useState<Array<{ role: 'ai' | 'user'; content: string; timestamp: Date }>>([]);
-  const [currentMessage, setCurrentMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [sessionStarted, setSessionStarted] = useState(false);
-  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  const [opikStatus, setOpikStatus] = useState<string>('untested');
+  const [currentTranscript, setCurrentTranscript] = useState('');
   const [isRecording, setIsRecording] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-
-  const persona = personas[sessionData.type];
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const { user, refreshSessionCount } = useAuth();
-  const { 
-    isSpeaking, 
-    speakText, 
-    stopSpeaking, 
-    selectedVoice, 
-    setSelectedVoice, 
-    availableVoices 
-  } = useVoiceChat();
+  const persona = AI_PERSONAS[sessionData.type];
 
-  // Initialize speech recognition
-  useEffect(() => {
-    const SpeechRecognitionConstructor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (SpeechRecognitionConstructor) {
-      const recognitionInstance = new SpeechRecognitionConstructor();
-      
-      recognitionInstance.continuous = false;
-      recognitionInstance.interimResults = false;
-      recognitionInstance.lang = 'en-US';
-      
-      recognitionInstance.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        console.log('🎤 Speech recognized:', transcript);
-        setCurrentMessage(transcript);
-        setIsRecording(false);
-        
-        toast({
-          title: "✅ Speech recognized",
-          description: `"${transcript.slice(0, 50)}${transcript.length > 50 ? '...' : ''}"`,
-        });
-        
-        // Auto-send the message after a short delay
-        setTimeout(() => {
-          handleSendMessage(transcript);
-        }, 1000);
-      };
-      
-      recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsRecording(false);
-        
-        let errorMessage = "Could not recognize speech. Please try again.";
-        if (event.error === 'no-speech') {
-          errorMessage = "No speech detected. Please speak louder or closer to the microphone.";
-        } else if (event.error === 'not-allowed') {
-          errorMessage = "Microphone access denied. Please allow microphone permissions.";
-        }
-        
-        toast({
-          title: "Speech recognition failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      };
-      
-      recognitionInstance.onend = () => {
-        console.log('🎤 Speech recognition ended');
-        setIsRecording(false);
-      };
-      
-      setRecognition(recognitionInstance);
-    } else {
-      console.warn('Speech recognition not supported in this browser');
-    }
-  }, [toast]);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    if (!sessionStarted) {
-      // Test Opik connection when session starts
-      testOpikConnection().then(result => {
-        console.log('Opik test result:', result);
-        setOpikStatus(result.success ? 'connected' : 'failed');
-      });
-      
-      // Start with AI greeting
-      const greeting = generateAIGreeting();
-      setMessages([{ role: 'ai', content: greeting, timestamp: new Date() }]);
-      setSessionStarted(true);
-      
-      // Speak the greeting automatically
-      setTimeout(() => {
-        speakText(greeting);
-      }, 1000);
-    }
-  }, [sessionStarted, speakText]);
+    scrollToBottom();
+  }, [messages]);
 
-  const testOpikNow = async () => {
-    console.log('🧪 Manual Opik test triggered');
-    setOpikStatus('testing');
-    const result = await testOpikConnection();
-    console.log('Manual test result:', result);
-    setOpikStatus(result.success ? 'connected' : 'failed');
-  };
-
-  const generateAIGreeting = () => {
-    const greetings = {
-      salary: "Hello! I'm Sarah, and I'll be conducting this interview today. I see you're interested in discussing the compensation package. Let's start - what are your salary expectations for this role?",
-      business: "Good morning! I'm Marcus from the partnership development team. I understand you have a proposal for us. Tell me, what value do you believe your services can bring to our organization?",
-      customer_service: "Hi, I'm Jennifer and I'm really frustrated with your product. I've been dealing with this issue for weeks and I want a full refund. I don't think this is too much to ask!",
-      job_interview: "Good afternoon! I'm David, and I'll be your interviewer today. I've reviewed your resume and I have some questions about your background. Let's start with why you're interested in this position.",
-      landlord: "Hello, this is Patricia from property management. I received your message about the rent increase. I understand your concerns, but we need to discuss the market conditions and property maintenance costs.",
-      freelance: "Hey there! I'm Alex, founder of TechStart. We're really excited about potentially working with you on our project. However, I have to be honest - our budget is quite tight as a startup. Can we discuss your rates?"
-    };
+  const startSession = async () => {
+    setSessionStarted(true);
+    setIsProcessing(true);
     
-    return greetings[sessionData.type];
-  };
-
-  const generateAIResponse = (userMessage: string) => {
-    const responses = {
-      salary: [
-        "I see you're asking for quite a bit above our initial offer. What specific value do you bring that justifies this increase?",
-        "That's interesting. Can you tell me about your experience with similar projects and the results you achieved?",
-        "I appreciate your research on market rates. However, we also need to consider your experience level and our budget constraints.",
-        "Let me understand your perspective better. What would you say is your unique value proposition?"
-      ],
-      business: [
-        "That's a compelling point. However, I'm concerned about the implementation timeline. How do you plan to address that?",
-        "I like what I'm hearing, but our board is very cost-conscious right now. Can you work with us on the pricing?",
-        "Interesting proposal. What guarantees can you provide for the results you're promising?",
-        "I appreciate the detailed explanation. Let me present a counter-proposal that might work better for both parties."
-      ],
-      customer_service: [
-        "I understand you're frustrated, but our policy is clear about the 30-day return window. However, let me see what else we can do.",
-        "Look, I've been using this product for months! Surely there's something you can do to make this right?",
-        "I'm not looking for excuses, I just want a solution. What other options do we have?",
-        "Okay, I appreciate that you're trying to help. But I really need this resolved today. What's your best offer?"
-      ],
-      job_interview: [
-        "That's a good start, but I'd like to dig deeper into your problem-solving approach. Can you give me a specific example?",
-        "I notice there's a gap in your employment history. Can you walk me through what happened during that time?",
-        "Your technical skills seem solid, but how do you handle working with difficult team members or stakeholders?",
-        "That's helpful context. Now, what questions do you have for me about the role or the company?"
-      ],
-      landlord: [
-        "I understand you've been a good tenant, but maintenance costs have increased significantly this year. We need to find a balance.",
-        "The market has changed, and we need to adjust accordingly. However, I'm willing to discuss what repairs you think are most urgent.",
-        "I appreciate your loyalty as a tenant. Let me see what flexibility I have with the increase amount.",
-        "That's a fair point about the maintenance issues. If we address those, would you be more comfortable with a smaller increase?"
-      ],
-      freelance: [
-        "I totally get that you have your standard rates, but as a startup, every dollar counts. Is there any flexibility in your pricing?",
-        "What if we structured it differently? Maybe a lower hourly rate but with some equity or performance bonuses?",
-        "I respect your experience and expertise. Help me understand what's included in your rate and where we might be able to optimize.",
-        "That makes sense. What if we started with a smaller project to build trust, then discuss larger terms for future work?"
-      ]
-    };
-    
-    return responses[sessionData.type][Math.floor(Math.random() * responses[sessionData.type].length)];
-  };
-
-  const startVoiceRecording = async () => {
-    if (!recognition) {
-      toast({
-        title: "Speech recognition not supported",
-        description: "Your browser doesn't support speech recognition. Please use a Chrome-based browser.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      setIsRecording(true);
-      recognition.start();
-      
-      toast({
-        title: "🎤 Recording started",
-        description: "Speak your response now...",
+      const response = await fetch('/api/start-negotiation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: sessionData.type,
+          scenario: sessionData.scenario,
+          userGoal: sessionData.userGoal,
+          persona: persona
+        })
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages([{
+          role: 'ai',
+          content: data.message,
+          timestamp: new Date()
+        }]);
+      }
     } catch (error) {
-      console.error('Error starting recording:', error);
-      setIsRecording(false);
+      console.error('Error starting session:', error);
       toast({
-        title: "Recording failed",
-        description: "Could not start speech recognition. Please try again.",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to start the practice session. Please try again.",
+        className: "bg-red-50 border-red-200 text-red-800"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const stopVoiceRecording = () => {
-    if (recognition && isRecording) {
-      recognition.stop();
-      setIsRecording(false);
-    }
-  };
+  const sendMessage = async (userMessage: string) => {
+    if (!userMessage.trim()) return;
 
-  const handleSendMessage = async (messageText?: string) => {
-    const textToSend = messageText || currentMessage;
-    if (!textToSend.trim()) return;
+    const userMsg = {
+      role: 'user' as const,
+      content: userMessage,
+      timestamp: new Date()
+    };
 
-    console.log('💬 Sending message:', textToSend);
-    
-    const userMsg = { role: 'user' as const, content: textToSend, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
-    
-    setCurrentMessage('');
-    setIsTyping(true);
+    setIsProcessing(true);
 
-    // Simulate AI response delay
-    setTimeout(async () => {
-      const aiResponse = generateAIResponse(textToSend);
-      const aiMsg = { role: 'ai' as const, content: aiResponse, timestamp: new Date() };
-      setMessages(prev => [...prev, aiMsg]);
-      
-      console.log('🤖 AI responded:', aiResponse);
-      
-      // Speak the AI response automatically
-      try {
-        await speakText(aiResponse);
-        console.log('✅ Speech generated successfully');
-      } catch (error) {
-        console.error('❌ Speech generation failed:', error);
-      }
-      
-      // Log conversation to Opik with detailed logging
-      console.log('📝 About to log conversation to Opik...');
-      const logResult = await logConversation({
-        sessionId,
-        userMessage: userMsg.content,
-        aiResponse,
-        timestamp: new Date(),
-        negotiationType: sessionData.type,
-        persona: persona.name
-      });
-      
-      console.log('📝 Opik logging result:', logResult);
-      
-      setIsTyping(false);
-    }, 1500 + Math.random() * 1000);
-  };
-
-  const handleVoiceInput = (text: string) => {
-    console.log('🎤 Voice input received:', text);
-    setCurrentMessage(text);
-    // Auto-send voice messages after a short delay
-    setTimeout(() => {
-      if (text.trim()) {
-        handleSendMessage();
-      }
-    }, 500);
-  };
-
-  const handleTextToSpeech = async (text: string) => {
     try {
-      console.log('🔊 Manual TTS request:', text);
-      await speakText(text);
+      const response = await fetch('/api/continue-negotiation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          context: messages,
+          sessionData: sessionData
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(prev => [...prev, {
+          role: 'ai',
+          content: data.message,
+          timestamp: new Date()
+        }]);
+      }
     } catch (error) {
-      console.error('❌ Manual TTS failed:', error);
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const handleEndSession = async () => {
-    console.log('🔚 Ending session with messages:', messages);
-    
-    const transcript = messages
-      .map(msg => `${msg.role === 'ai' ? persona.name : 'You'}: ${msg.content}`)
+  const handleCompleteSession = () => {
+    const fullTranscript = messages
+      .map(msg => `${msg.role === 'user' ? 'You' : persona.name}: ${msg.content}`)
       .join('\n\n');
     
-    console.log('📋 Generated transcript:', transcript);
-    
-    // Save session to database if user is logged in
-    if (user) {
-      try {
-        const { error } = await supabase
-          .from('practice_sessions')
-          .insert({
-            user_id: user.id,
-            session_type: sessionData.type,
-            scenario: sessionData.scenario,
-            transcript: transcript
-          });
-        
-        if (error) {
-          console.error('Error saving session:', error);
-        } else {
-          console.log('✅ Session saved to database');
-          // Refresh session count
-          await refreshSessionCount();
-        }
-      } catch (error) {
-        console.error('Error saving session:', error);
-      }
-    }
-    
-    // Save session result to localStorage
-    const savedResult = saveSessionResult({
-      sessionId,
-      negotiationType: sessionData.type,
-      transcript
-    });
-    
-    if (savedResult) {
-      console.log('💾 Session completed and saved successfully:', savedResult);
-      
-      // Log session metrics to Opik
-      console.log('📊 Logging session metrics to Opik...');
-      const metricsResult = await logSessionMetrics(sessionId, {
-        confidence: savedResult.confidence,
-        clarity: savedResult.clarity,
-        persuasiveness: savedResult.persuasiveness,
-        overallScore: savedResult.overallScore
-      });
-      
-      console.log('📊 Metrics logging result:', metricsResult);
-    } else {
-      console.error('❌ Failed to save session result');
-    }
-    
-    onComplete(transcript);
+    onComplete(fullTranscript);
   };
 
-  return (
-    <div className="container mx-auto px-4 max-w-4xl">
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-3xl font-bold text-gray-800">Practice Session</h2>
-          <div className="flex gap-2">
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              🔴 Live Session
-            </Badge>
-            <Badge variant="outline">
-              {messages.length} messages
-            </Badge>
-            <Badge 
-              variant={opikStatus === 'connected' ? 'default' : opikStatus === 'failed' ? 'destructive' : 'secondary'}
-              className={
-                opikStatus === 'connected' ? 'bg-green-100 text-green-800' :
-                opikStatus === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-yellow-100 text-yellow-800'
-              }
-            >
-              Opik: {opikStatus}
-            </Badge>
-            <Button variant="outline" size="sm" onClick={testOpikNow}>
-              Test Opik
-            </Button>
-          </div>
-        </div>
+  if (!sessionStarted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <PracticeHeader
+          sessionType={sessionData.type}
+          scenario={sessionData.scenario}
+          userGoal={sessionData.userGoal}
+          persona={persona}
+          onBack={onBack}
+        />
         
-        {/* Voice Chat Controls */}
-        <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              🎙️ <strong>Voice Chat Active:</strong> Use the microphone button below to speak your responses, or choose your preferred AI voice in settings.
-            </div>
-            <div className="relative">
-              <VoiceChat 
-                onSpeechToText={handleVoiceInput}
-                onTextToSpeech={handleTextToSpeech}
-                isSpeaking={isSpeaking}
-                isListening={isTyping}
-                selectedVoice={selectedVoice}
-                onVoiceChange={setSelectedVoice}
-                availableVoices={availableVoices}
-              />
-            </div>
-          </div>
-        </div>
-        
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-semibold">
-                {persona.name[0]}
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="mb-8">
+              <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-3xl text-white font-bold">{persona.name[0]}</span>
               </div>
-              <div>
-                <div className="font-semibold">{persona.name} - {persona.role}</div>
-                <div className="text-sm text-gray-600">{persona.personality}</div>
-              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Ready to Practice with {persona.name}?
+              </h2>
+              <p className="text-lg text-gray-600 mb-8">
+                {persona.name} is a {persona.role} who is {persona.personality.toLowerCase()}. 
+                Take your time to think about your approach and remember your goal.
+              </p>
             </div>
-            <div className="text-sm text-gray-600 mt-2">
-              <strong>Scenario:</strong> {sessionData.scenario}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Card className="mb-6 bg-white shadow-lg">
-        <CardContent className="p-6">
-          <div className="h-96 overflow-y-auto mb-4 space-y-4">
-            {messages.map((msg, index) => (
-              <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[70%] p-4 rounded-lg ${
-                  msg.role === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  <div className="font-medium text-sm mb-1 flex items-center gap-2">
-                    {msg.role === 'user' ? 'You' : persona.name}
-                    {msg.role === 'ai' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTextToSpeech(msg.content)}
-                        className="h-6 w-6 p-0 hover:bg-gray-200"
-                        disabled={isSpeaking}
-                        title="Replay this message"
-                      >
-                        🔊
-                      </Button>
-                    )}
-                  </div>
-                  <div>{msg.content}</div>
-                  <div className="text-xs opacity-70 mt-2">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </div>
-                </div>
+            <Card className="p-8 bg-white shadow-xl border-0">
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold text-gray-900">Quick Tips</h3>
+                <ul className="text-left space-y-2 text-gray-600">
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    Stay confident and maintain eye contact (even in practice)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    Listen actively to understand their perspective
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    Use specific examples to support your points
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    Be prepared to find win-win solutions
+                  </li>
+                </ul>
               </div>
-            ))}
-            
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-800 p-4 rounded-lg max-w-[70%]">
-                  <div className="font-medium text-sm mb-1">{persona.name}</div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-2">
-            <Textarea
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Type your response or use the microphone button to speak..."
-              className="flex-1 resize-none"
-              rows={3}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-            />
-            <div className="flex flex-col gap-2">
-              {/* Voice Recording Button */}
-              <Button
-                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
-                variant={isRecording ? "destructive" : "outline"}
-                size="sm"
-                className={`${isRecording ? 'animate-pulse bg-red-500 hover:bg-red-600' : 'border-blue-200 hover:bg-blue-50'}`}
-                title={isRecording ? "Stop recording" : "Record voice message"}
+              
+              <Button 
+                onClick={startSession}
+                disabled={isProcessing}
+                className="mt-8 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                {isRecording ? (
+                {isProcessing ? (
                   <>
-                    <Square className="w-4 h-4" />
-                    Stop
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Starting Session...
                   </>
                 ) : (
-                  <>
-                    <Mic className="w-4 h-4" />
-                    🎤
-                  </>
+                  'Start Practice Session'
                 )}
               </Button>
-              
-              {/* Send Button */}
-              <Button
-                onClick={() => handleSendMessage()}
-                disabled={!currentMessage.trim()}
-                className="bg-blue-500 hover:bg-blue-600"
-                size="sm"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-              
-              {/* End Session Button */}
-              <Button
-                onClick={handleEndSession}
-                variant="outline"
-                size="sm"
-                className="text-red-600 border-red-200 hover:bg-red-50"
-              >
-                End
-              </Button>
-            </div>
+            </Card>
           </div>
-          
-          {/* Recording Status */}
-          {isRecording && (
-            <div className="mt-2 text-center">
-              <Badge variant="destructive" className="animate-pulse">
-                🔴 Recording... Click "Stop" when done speaking
-              </Badge>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+    );
+  }
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          ← Back to Scenarios
-        </Button>
-        
-        <div className="text-sm text-gray-500">
-          🎙️ Click microphone to speak • 🔊 AI speaks automatically • Press Enter to send text
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <PracticeHeader
+        sessionType={sessionData.type}
+        scenario={sessionData.scenario}
+        userGoal={sessionData.userGoal}
+        persona={persona}
+        onBack={onBack}
+      />
+
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto">
+          <Card className="h-[600px] flex flex-col bg-white shadow-xl border-0 rounded-2xl">
+            {/* Chat Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {messages.map((message, index) => (
+                <ChatMessage
+                  key={index}
+                  role={message.role}
+                  content={message.content}
+                  timestamp={message.timestamp}
+                  persona={message.role === 'ai' ? persona : undefined}
+                />
+              ))}
+              {isProcessing && (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <Loader2 className="h-5 w-5 text-white animate-spin" />
+                  </div>
+                  <Card className="p-4 bg-gray-100 rounded-2xl rounded-bl-md">
+                    <p className="text-sm text-gray-600">{persona.name} is thinking...</p>
+                  </Card>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t bg-gray-50 p-6 rounded-b-2xl">
+              <div className="flex items-center justify-center gap-4">
+                <VoiceRecorder
+                  isRecording={isRecording}
+                  onStartRecording={() => setIsRecording(true)}
+                  onStopRecording={() => setIsRecording(false)}
+                  onTranscriptUpdate={setCurrentTranscript}
+                />
+                
+                <Button
+                  onClick={() => {
+                    if (currentTranscript.trim()) {
+                      sendMessage(currentTranscript);
+                      setCurrentTranscript('');
+                    }
+                  }}
+                  disabled={!currentTranscript.trim() || isProcessing}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {currentTranscript && (
+                <div className="mt-4 p-3 bg-white rounded-lg border">
+                  <p className="text-sm text-gray-700">{currentTranscript}</p>
+                </div>
+              )}
+              
+              <div className="mt-4 text-center">
+                <Button
+                  onClick={handleCompleteSession}
+                  variant="outline"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Complete Session & Get Feedback
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     </div>
