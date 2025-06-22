@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Mic, MicOff, Send, Square } from 'lucide-react';
 import { SessionData } from '@/pages/Index';
 import { logConversation, logSessionMetrics, testOpikConnection } from '@/services/opikService';
 import { saveSessionResult } from '@/components/SessionResultSaver';
@@ -10,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { VoiceChat } from '@/components/VoiceChat';
 import { useVoiceChat } from '@/hooks/useVoiceChat';
+import { useToast } from '@/hooks/use-toast';
 
 interface PracticeSessionProps {
   sessionData: SessionData;
@@ -33,8 +35,11 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
   const [sessionStarted, setSessionStarted] = useState(false);
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [opikStatus, setOpikStatus] = useState<string>('untested');
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
   const persona = personas[sessionData.type];
+  const { toast } = useToast();
 
   const { user, refreshSessionCount } = useAuth();
   const { 
@@ -130,12 +135,120 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
     return responses[sessionData.type][Math.floor(Math.random() * responses[sessionData.type].length)];
   };
 
-  const handleSendMessage = async () => {
-    if (!currentMessage.trim()) return;
+  const startVoiceRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+      
+      const recorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      const audioChunks: Blob[] = [];
+      
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+      
+      recorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        await processVoiceToText(audioBlob);
+        
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+        setMediaRecorder(null);
+      };
+      
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      
+      toast({
+        title: "🎤 Recording started",
+        description: "Speak your response now...",
+      });
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      toast({
+        title: "Recording failed",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive",
+      });
+    }
+  };
 
-    console.log('💬 Sending message:', currentMessage);
+  const stopVoiceRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      
+      toast({
+        title: "🔄 Processing...",
+        description: "Converting your speech to text...",
+      });
+    }
+  };
+
+  const processVoiceToText = async (audioBlob: Blob) => {
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // Call speech-to-text service
+      const { data, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
+      });
+      
+      if (error) {
+        throw new Error('Speech-to-text service error');
+      }
+      
+      const text = data?.text;
+      if (text && text.trim()) {
+        setCurrentMessage(text);
+        
+        toast({
+          title: "✅ Speech recognized",
+          description: `"${text.slice(0, 50)}${text.length > 50 ? '...' : ''}"`,
+        });
+        
+        // Auto-send the message after a short delay
+        setTimeout(() => {
+          handleSendMessage(text);
+        }, 1000);
+      } else {
+        toast({
+          title: "No speech detected",
+          description: "Please try speaking again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error processing voice:', error);
+      toast({
+        title: "Speech recognition failed",
+        description: "Could not convert speech to text. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSendMessage = async (messageText?: string) => {
+    const textToSend = messageText || currentMessage;
+    if (!textToSend.trim()) return;
+
+    console.log('💬 Sending message:', textToSend);
     
-    const userMsg = { role: 'user' as const, content: currentMessage, timestamp: new Date() };
+    const userMsg = { role: 'user' as const, content: textToSend, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     
     setCurrentMessage('');
@@ -143,7 +256,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
 
     // Simulate AI response delay
     setTimeout(async () => {
-      const aiResponse = generateAIResponse(currentMessage);
+      const aiResponse = generateAIResponse(textToSend);
       const aiMsg = { role: 'ai' as const, content: aiResponse, timestamp: new Date() };
       setMessages(prev => [...prev, aiMsg]);
       
@@ -286,7 +399,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600">
-              🎙️ <strong>Voice Chat Active:</strong> Click "Voice" to speak your responses, choose your preferred AI voice in settings.
+              🎙️ <strong>Voice Chat Active:</strong> Use the microphone button below to speak your responses, or choose your preferred AI voice in settings.
             </div>
             <div className="relative">
               <VoiceChat 
@@ -371,7 +484,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
             <Textarea
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
-              placeholder="Type your response or click 'Voice' to speak..."
+              placeholder="Type your response or use the microphone button to speak..."
               className="flex-1 resize-none"
               rows={3}
               onKeyPress={(e) => {
@@ -382,22 +495,57 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
               }}
             />
             <div className="flex flex-col gap-2">
+              {/* Voice Recording Button */}
               <Button
-                onClick={handleSendMessage}
+                onClick={isRecording ? stopVoiceRecording : startVoiceRecording}
+                variant={isRecording ? "destructive" : "outline"}
+                size="sm"
+                className={`${isRecording ? 'animate-pulse bg-red-500 hover:bg-red-600' : 'border-blue-200 hover:bg-blue-50'}`}
+                title={isRecording ? "Stop recording" : "Record voice message"}
+              >
+                {isRecording ? (
+                  <>
+                    <Square className="w-4 h-4" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-4 h-4" />
+                    🎤
+                  </>
+                )}
+              </Button>
+              
+              {/* Send Button */}
+              <Button
+                onClick={() => handleSendMessage()}
                 disabled={!currentMessage.trim()}
                 className="bg-blue-500 hover:bg-blue-600"
+                size="sm"
               >
-                Send
+                <Send className="w-4 h-4" />
               </Button>
+              
+              {/* End Session Button */}
               <Button
                 onClick={handleEndSession}
                 variant="outline"
+                size="sm"
                 className="text-red-600 border-red-200 hover:bg-red-50"
               >
-                End Session
+                End
               </Button>
             </div>
           </div>
+          
+          {/* Recording Status */}
+          {isRecording && (
+            <div className="mt-2 text-center">
+              <Badge variant="destructive" className="animate-pulse">
+                🔴 Recording... Click "Stop" when done speaking
+              </Badge>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -407,7 +555,7 @@ export const PracticeSession = ({ sessionData, onComplete, onBack }: PracticeSes
         </Button>
         
         <div className="text-sm text-gray-500">
-          🎙️ Use voice or text • 🔊 AI speaks automatically • Press Enter to send
+          🎙️ Click microphone to speak • 🔊 AI speaks automatically • Press Enter to send text
         </div>
       </div>
     </div>
