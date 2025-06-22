@@ -1,9 +1,8 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Check } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Check, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
@@ -14,123 +13,96 @@ interface PaywallModalProps {
   sessionCount: number;
 }
 
-const plans = [
-  {
-    name: "Pro Monthly",
-    price: "$9.99",
-    priceId: "price_monthly",
-    description: "Perfect for regular practice",
-    features: [
-      "Unlimited practice sessions",
-      "All negotiation scenarios",
-      "Detailed feedback reports",
-      "SMS sharing",
-      "Priority support"
-    ]
-  },
-  {
-    name: "Pro Yearly",
-    price: "$99.99",
-    priceId: "price_yearly",
-    description: "Best value - 2 months free!",
-    popular: true,
-    features: [
-      "Unlimited practice sessions",
-      "All negotiation scenarios",
-      "Detailed feedback reports",
-      "SMS sharing",
-      "Priority support",
-      "Save $20 per year"
-    ]
-  }
-];
-
 export const PaywallModal = ({ isOpen, onClose, sessionCount }: PaywallModalProps) => {
-  const [loading, setLoading] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleUpgrade = async (priceId: string) => {
-    setLoading(priceId);
-    
+  const handleUpgrade = async () => {
+    setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { priceId }
-      });
-
-      if (error) {
-        throw error;
-      }
-
+      const { data, error } = await supabase.functions.invoke('create-checkout');
+      
+      if (error) throw error;
+      
       if (data?.url) {
         window.open(data.url, '_blank');
       }
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
-        title: "Checkout failed",
-        description: "There was an error creating your checkout session. Please try again.",
+        title: "Error",
+        description: "Unable to start checkout process. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setLoading(null);
+      setLoading(false);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl">Upgrade to Continue Practicing</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-500" />
+            Upgrade to Pro
+          </DialogTitle>
+          <DialogDescription>
+            You've used {sessionCount} out of 5 free practice sessions. Upgrade to continue practicing unlimited!
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="text-center mb-6">
-          <p className="text-lg text-gray-600 mb-2">
-            You've completed <strong>{sessionCount} out of 5</strong> free practice sessions!
-          </p>
-          <p className="text-gray-500">
-            Upgrade to Pro to unlock unlimited practice sessions and advanced features.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {plans.map((plan) => (
-            <Card key={plan.priceId} className={`relative ${plan.popular ? 'ring-2 ring-blue-500' : ''}`}>
-              {plan.popular && (
-                <Badge className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-blue-500">
-                  Most Popular
-                </Badge>
-              )}
-              <CardHeader>
-                <CardTitle className="text-xl">{plan.name}</CardTitle>
-                <CardDescription>{plan.description}</CardDescription>
-                <div className="text-3xl font-bold text-blue-600">{plan.price}</div>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 mb-4">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-green-500" />
-                      <span className="text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  onClick={() => handleUpgrade(plan.priceId)}
-                  disabled={loading === plan.priceId}
-                  className="w-full"
-                  variant={plan.popular ? "default" : "outline"}
-                >
-                  {loading === plan.priceId ? "Processing..." : "Choose Plan"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="text-center text-sm text-gray-500 mt-4">
-          <p>Secure payment processing by Stripe</p>
-          <p>Cancel anytime from your account settings</p>
-        </div>
+        <Card className="border-2 border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="text-center text-blue-800">
+              Negotiation Practice Pro
+            </CardTitle>
+            <div className="text-center">
+              <span className="text-3xl font-bold text-blue-900">$7.99</span>
+              <span className="text-blue-700">/month</span>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm">Unlimited practice sessions</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm">All negotiation scenarios</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm">Detailed feedback reports</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm">SMS sharing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-green-600" />
+                <span className="text-sm">Priority support</span>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={handleUpgrade} 
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={loading}
+            >
+              {loading ? "Processing..." : "Upgrade Now"}
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={onClose} 
+              className="w-full"
+            >
+              Maybe Later
+            </Button>
+          </CardContent>
+        </Card>
       </DialogContent>
     </Dialog>
   );
