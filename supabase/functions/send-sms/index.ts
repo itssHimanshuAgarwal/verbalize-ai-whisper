@@ -22,21 +22,31 @@ const handler = async (req: Request): Promise<Response> => {
     
     console.log('Sending SMS to:', phoneNumber);
 
-    // Use the exact secret names from Supabase
-    const accountSid = Deno.env.get('Account SID') || Deno.env.get('TWILIO_ACCOUNT_SID');
-    const authToken = Deno.env.get('Auth Token') || Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioPhoneNumber = Deno.env.get('Phone Number') || Deno.env.get('TWILIO_PHONE_NUMBER');
+    // Check all possible secret names for Twilio credentials
+    const accountSid = Deno.env.get('Account SID') || Deno.env.get('TWILIO_ACCOUNT_SID') || Deno.env.get('ACCOUNT_SID');
+    const authToken = Deno.env.get('Auth Token') || Deno.env.get('TWILIO_AUTH_TOKEN') || Deno.env.get('AUTH_TOKEN');
+    const twilioPhoneNumber = Deno.env.get('Phone Number') || Deno.env.get('Phone number') || Deno.env.get('TWILIO_PHONE_NUMBER') || Deno.env.get('PHONE_NUMBER');
 
     console.log('Environment check:', {
       accountSid: accountSid ? 'Found' : 'Missing',
       authToken: authToken ? 'Found' : 'Missing',
-      twilioPhoneNumber: twilioPhoneNumber ? `Found: ${twilioPhoneNumber}` : 'Missing'
+      twilioPhoneNumber: twilioPhoneNumber ? `Found: ${twilioPhoneNumber}` : 'Missing',
+      allEnvKeys: Object.keys(Deno.env.toObject()).filter(key => key.toLowerCase().includes('phone') || key.toLowerCase().includes('twilio'))
     });
 
     if (!accountSid || !authToken || !twilioPhoneNumber) {
-      console.error('Missing Twilio credentials');
+      const missingCreds = [];
+      if (!accountSid) missingCreds.push('Account SID');
+      if (!authToken) missingCreds.push('Auth Token');
+      if (!twilioPhoneNumber) missingCreds.push('Phone Number');
+      
+      console.error('Missing Twilio credentials:', missingCreds);
       return new Response(
-        JSON.stringify({ error: 'Twilio credentials not configured' }),
+        JSON.stringify({ 
+          error: 'Twilio credentials not configured', 
+          missing: missingCreds,
+          availableEnvKeys: Object.keys(Deno.env.toObject()).filter(key => key.toLowerCase().includes('phone') || key.toLowerCase().includes('twilio'))
+        }),
         { 
           status: 500, 
           headers: { 'Content-Type': 'application/json', ...corsHeaders } 
