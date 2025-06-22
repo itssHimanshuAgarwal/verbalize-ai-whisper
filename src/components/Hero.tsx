@@ -30,19 +30,19 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
           </div>
 
           <h1 className="text-4xl lg:text-7xl font-bold text-gray-900 mb-6 animate-fade-in">
-            AI-powered{' '}
+            Master{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
-              negotiation training
+              high-stakes negotiations
             </span>
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">
-              experiences
+              with AI coaching
             </span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto animate-fade-in">
-            Verbalize AI is the complete platform for building & deploying AI negotiation 
-            training tools for your career success.
+            Transform your negotiation skills with AI-powered practice sessions. Get instant feedback, 
+            build confidence, and close deals like a pro in salary talks, business deals, and beyond.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-fade-in">
@@ -52,7 +52,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
               className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-6 text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group"
             >
               <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-              {user ? 'Start Practicing Now' : 'Start Free Practice'}
+              {user ? 'Start Mastering Now' : 'Master Negotiations Free'}
             </Button>
             
             <div className="flex gap-2">
@@ -93,7 +93,7 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
             </div>
             <div className="flex items-center gap-1 bg-green-50 px-3 py-1 rounded-full border border-green-200">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-700 font-medium">Opik passes successfully</span>
+              <span className="text-green-700 font-medium">Demo ready - perfect for recordings</span>
             </div>
           </div>
         </div>
@@ -105,9 +105,9 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                 <MessageSquare className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">Purpose-built for negotiations</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900">Built for real negotiations</h3>
               <p className="text-gray-600 leading-relaxed">
-                AI personas with advanced reasoning capabilities for effective responses to complex negotiation scenarios.
+                AI personas with advanced reasoning capabilities that respond like real counterparts in salary, business, and customer negotiations.
               </p>
             </CardContent>
           </Card>
@@ -117,9 +117,9 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                 <TrendingUp className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">Designed for simplicity</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900">Instant skill improvement</h3>
               <p className="text-gray-600 leading-relaxed">
-                Create, manage, and deploy negotiation training easily, even without technical skills.
+                Get immediate feedback on your negotiation tactics, confidence levels, and persuasiveness with actionable next steps.
               </p>
             </CardContent>
           </Card>
@@ -129,9 +129,9 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
               <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Shield className="h-8 w-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">Engineered for success</h3>
+              <h3 className="text-xl font-bold mb-3 text-gray-900">Enterprise-grade security</h3>
               <p className="text-gray-600 leading-relaxed">
-                Enjoy peace of mind with enterprise-grade security and strict compliance standards.
+                Practice confidently with enterprise-level security, privacy protection, and strict compliance standards for sensitive negotiations.
               </p>
             </CardContent>
           </Card>
@@ -140,11 +140,11 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
         {/* Demo section */}
         <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-3xl p-8 lg:p-12 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            An end-to-end solution for conversational AI negotiation training
+            The complete AI negotiation training platform
           </h2>
           <p className="text-lg text-gray-600 mb-8 max-w-4xl mx-auto">
-            With Verbalize AI, your practice sessions can effortlessly find improvement areas, resolve 
-            confidence issues, and take meaningful actions through seamless and engaging AI-powered conversations.
+            Practice high-stakes conversations with confidence. Our AI coaches help you identify strengths, 
+            overcome weaknesses, and master the art of persuasion through realistic, engaging scenarios.
           </p>
           
           <div className="bg-white rounded-2xl p-6 shadow-xl max-w-2xl mx-auto">
@@ -160,12 +160,12 @@ export const Hero = ({ onStartPractice }: HeroProps) => {
                   <span className="text-white text-sm font-bold">AI</span>
                 </div>
                 <div className="bg-gray-100 rounded-lg p-3 max-w-xs">
-                  <p className="text-sm">I understand you're looking for a salary increase. What specific accomplishments would you like to highlight?</p>
+                  <p className="text-sm">I understand you're seeking a salary increase. What specific achievements demonstrate your increased value?</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 justify-end">
                 <div className="bg-blue-500 text-white rounded-lg p-3 max-w-xs">
-                  <p className="text-sm">I've increased our team's productivity by 40% this quarter...</p>
+                  <p className="text-sm">I've delivered 3 major projects ahead of schedule, increasing team efficiency by 40%...</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white text-sm font-bold">You</span>
